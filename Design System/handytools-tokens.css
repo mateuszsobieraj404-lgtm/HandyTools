@@ -1,0 +1,657 @@
+/* ===========================================================================
+   HandyTools - system wizualny, wersja 1.1
+   Tokeny i klasy bazowe. Wklej jako pierwszy arkusz w projekcie.
+   Motyw jest jeden: ciemny.
+
+   Ten plik jest źródłem wartości. Opis reguł: handytools-system-wizualny.md.
+   Jeśli wartość jest potrzebna, a nie ma jej tutaj, najpierw dopisz token
+   (z rolą), dopiero potem użyj go w komponencie. Zero wartości z palca.
+   =========================================================================== */
+
+:root {
+  /* --- powierzchnie --------------------------------------------------------
+     Jedna rodzina szarości (R = G, B wyżej o 2-7, rośnie z jasnością).
+     Sześć stopni, bez wyjątków.
+     Im wyżej element leży w stosie, tym jaśniejszy.                          */
+  --ht-bg:       #08080A;  /* 0  tło ekranu                                   */
+  --ht-recess:   #0F0F13;  /* 1  wgłębienie: studzienka ikony, tor segmentu    */
+  --ht-surface:  #17171B;  /* 2  kontrolka na tle: kafel, pole, przycisk, pasek */
+  --ht-raised:   #1E1E23;  /* 3  treść na tle: karta, awatar; arkusz; pole z fokusem */
+  --ht-hover:    #26262C;  /* 4  najazd; spoczynek elementu na arkuszu        */
+  --ht-press:    #2E2E35;  /* 5  wciśnięcie; najazd na arkuszu; aktywny segment */
+
+  /* --- obrysy (biel z przezroczystością, dwa stopnie) --------------------- */
+  --ht-line:        rgb(255 255 255 / 0.08);  /* spoczynek, światło wewn. arkusza */
+  --ht-line-strong: rgb(255 255 255 / 0.14);  /* najazd, krawędź arkusza, uchwyt  */
+
+  /* --- tekst i ikony ------------------------------------------------------ */
+  --ht-text:   #F7F5F1;  /* tekst główny, tytuły, najazd na tekst i ikonę     */
+  --ht-label:  #C4C4CB;  /* etykieta kafla, przycisk tekstowy, inicjały       */
+  --ht-muted:  #9EA0A6;  /* opis, podpis, etykieta pola i paska               */
+  --ht-faint:  #86868E;  /* placeholder, wygaszone; ≥ 4,5:1 do --ht-raised    */
+  --ht-icon:   #EDEDF0;  /* ikona neutralna                                   */
+
+  /* --- akcent --------------------------------------------------------------
+     Role (i nigdzie indziej): wypełnienie akcji głównej, ikona wyróżnionej pozycji paska,
+     tekst kasowania i błędu, ikona w studzience, kropka stanu, pierścień
+     fokusu, logo, poblask marki.                                             */
+  --ht-accent:       #FF3B30;  /* 5,6:1 do --ht-bg                            */
+  --ht-accent-hover: #FF5147;  /* najazd na akcję główną i na kasowanie       */
+  --ht-on-accent:    #0B0B0D;  /* tekst na wypełnieniu akcentem, 5,5:1        */
+
+  /* --- warstwy pochodne (te same kolory, inna przezroczystość) ------------ */
+  --ht-glow:        radial-gradient(115% 70% at 18% 0%,
+                    rgb(255 59 48 / 0.05), rgb(255 59 48 / 0) 62%);
+  --ht-scrim:       rgb(8 8 10 / 0.5);     /* --ht-bg na 50 %                 */
+  --ht-scrim-solid: rgb(8 8 10 / 0.94);    /* bez przezroczystości systemowej */
+  --ht-sheet:       rgb(30 30 35 / 0.9);   /* --ht-raised na 90 %             */
+  --ht-shadow-sheet: 0 -24px 60px rgb(0 0 0 / 0.45);
+
+  /* --- typografia ---------------------------------------------------------- */
+  --ht-font: 'Manrope', 'Helvetica Neue', system-ui, sans-serif;
+
+  --ht-fs-title:   20px;    /* nagłówek ekranu, arkusza, panelu               */
+  --ht-fs-value:   17px;    /* wartość na karcie małej                        */
+  --ht-fs-body:    15px;    /* tytuł karty, przycisk, tekst w polu            */
+  --ht-fs-section: 13.5px;  /* nagłówek sekcji, zdanie wiodące, segment, przycisk tekstowy */
+  --ht-fs-label:   12.5px;  /* etykieta, opis karty, podpis, chip, błąd       */
+  --ht-fs-bar:     10.5px;  /* etykieta paska dolnego                         */
+
+  --ht-lh-tight: 1.2;       /* 15 px i więcej                                 */
+  --ht-lh-label: 1.3;       /* etykiety i podpisy                             */
+  --ht-lh-text:  1.45;      /* zdania                                         */
+
+  /* --- kształt: jedna drabina promieni ------------------------------------- */
+  --ht-r-sheet: 34px;  /* arkusz (górne rogi)                                 */
+  --ht-r-xl:    26px;  /* kafel narzędzia, pasek dolny                        */
+  --ht-r-lg:    22px;  /* karta: szeroka, mała, akcji                         */
+  --ht-r-md:    16px;  /* przycisk, pole, wyszukiwarka, tor segmentu          */
+  --ht-r-sm:    12px;  /* studzienka, awatar, przycisk ikonowy, segment, pigułka w pasku */
+  --ht-r-xs:    10px;  /* chip, próbka koloru, mały znacznik                  */
+
+  /* --- wymiary ------------------------------------------------------------- */
+  --ht-control:   52px;  /* pole, wyszukiwarka, każdy przycisk z tekstem       */
+  --ht-segment:   40px;  /* segment przełącznika (tor 50 px)                  */
+  --ht-chip:      30px;
+  --ht-icon-btn:  38px;  /* awatar, przycisk ikonowy                          */
+  --ht-well:      44px;  /* studzienka ikony w karcie                         */
+  --ht-tile:      92px;  /* wysokość kafla i karty małej                      */
+  --ht-action:   112px;  /* wysokość karty akcji                              */
+  --ht-bar-h:     82px;  /* wysokość paska dolnego                            */
+  --ht-hit:       44px;  /* minimalne pole dotyku                             */
+  --ht-dot:        7px;
+
+  /* --- ikony: cztery rozmiary, dwie grubości ------------------------------- */
+  --ht-i-tile:   30px;  /* kafel                                              */
+  --ht-i-md:     22px;  /* studzienka, karta mała, pasek                      */
+  --ht-i-sm:     18px;  /* przy tekście: pole, przycisk, strzałka, zamknij    */
+  /* stroke-width w jednostkach viewBox 24: 1.5 dla ≥ 22 px, 1.75 dla 18 px    */
+
+  /* --- odstępy ------------------------------------------------------------- */
+  --ht-gutter:      26px;  /* margines ekranu i arkusza                       */
+  --ht-gutter-bar:  16px;  /* margines boczny paska                           */
+  --ht-bar-bottom:  22px;  /* odstęp paska od dołu (+ safe area)              */
+  --ht-gap-section: 26px;  /* między sekcjami                                 */
+  --ht-gap:         12px;  /* wewnątrz sekcji, między kartami                 */
+  --ht-gap-form:    16px;  /* między polami formularza                        */
+  --ht-gap-label:    7px;  /* etykieta → pole                                 */
+  --ht-gap-grid-x:  20px;
+  --ht-gap-grid-y:  22px;
+  --ht-gap-tile:    11px;  /* kafel → etykieta                                */
+  --ht-pad-card:    15px;  /* padding każdej karty                            */
+  --ht-header-top:  36px;  /* nagłówek od góry ekranu                        */
+  --ht-login-top:   68px;  /* logo na ekranie wejściowym bez nagłówka      */
+  --ht-screen-max: 480px;  /* szerokość ekranu na tablecie i komputerze     */
+
+  /* --- ruch ---------------------------------------------------------------- */
+  --ht-ease:     cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ht-t-state:  200ms;   /* zmiana koloru, tła, obrysu                       */
+  --ht-t-press:  220ms;   /* wciśnięcie (transform)                           */
+  --ht-t-enter:  460ms;   /* wejście bloku, wyjazd arkusza                    */
+  --ht-t-scrim:  320ms;   /* przyciemnienie pod arkuszem                      */
+  --ht-t-pulse:  2400ms;  /* kropka trwającego procesu, szkielet ładowania    */
+  --ht-step:     50ms;    /* opóźnienie między blokami ekranu                 */
+  --ht-stagger:  30ms;    /* opóźnienie między elementami siatki              */
+  --ht-rise:     12px;    /* przesunięcie przy wejściu bloku                  */
+  --ht-rise-sheet: 28px;  /* przesunięcie przy wyjeździe arkusza              */
+
+  --ht-scale-tile: 0.955; /* kafel                                            */
+  --ht-scale-card: 0.982; /* karta, przycisk z tekstem                        */
+  --ht-scale-sm:   0.93;  /* pozycja paska, chip, przycisk ikonowy            */
+
+  --ht-focus-w:      2px;
+  --ht-focus-offset: 2px;
+}
+
+/* ===========================================================================
+   Podstawy
+   =========================================================================== */
+
+/* Font hostujemy u siebie (public/fonts). Manrope zmienny, dwa podzbiory:
+   latin-ext (polskie znaki) i latin. */
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/manrope-0.woff2') format('woff2');
+  font-weight: 400 600;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/manrope-1.woff2') format('woff2');
+  font-weight: 400 600;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+body {
+  margin: 0;
+  background: var(--ht-bg);
+  color: var(--ht-text);
+  font-family: var(--ht-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; color: inherit; }
+button { border: 0; background: none; padding: 0; cursor: pointer; }
+[hidden] { display: none !important; }  /* atrybut wygrywa z display klas */
+
+.ht-screen {
+  min-height: 100dvh;          /* nigdy 100vh: pasek adresu w Safari skacze */
+  max-width: var(--ht-screen-max);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: clip;              /* clip, nie hidden: hidden psuje przyklejony pasek */
+  background: var(--ht-bg);
+}
+
+/* Poblask marki. Pierwszy element ekranu, nie łapie zdarzeń. */
+.ht-glow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 300px;
+  pointer-events: none;
+  background: var(--ht-glow);
+}
+
+/* Fokus jest wszędzie taki sam, także na polach, i nigdzie go nie zdejmujemy. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: var(--ht-focus-w) solid var(--ht-accent);
+  outline-offset: var(--ht-focus-offset);
+}
+
+/* Tylko dla czytników ekranu (np. h1 zastąpiony logo, etykieta wyszukiwarki). */
+.ht-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Pole dotyku 44 × 44 dla elementów mniejszych wizualnie
+   (chip, segment, awatar, przycisk ikonowy). Wygląd bez zmian. */
+.ht-hit { position: relative; }
+.ht-hit::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--ht-hit));
+  height: max(100%, var(--ht-hit));
+  transform: translate(-50%, -50%);
+}
+
+/* Ikony: jeden zestaw konturowy. */
+.ht-i      { flex-shrink: 0; display: block; fill: none; stroke: currentColor;
+             stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.ht-i--tile { width: var(--ht-i-tile); height: var(--ht-i-tile); }
+.ht-i--md   { width: var(--ht-i-md);   height: var(--ht-i-md); }
+.ht-i--sm   { width: var(--ht-i-sm);   height: var(--ht-i-sm); stroke-width: 1.75; }
+
+/* ===========================================================================
+   Typografia - dziewięć ról, sześć rozmiarów
+   =========================================================================== */
+
+.ht-title   { margin: 0; font-size: var(--ht-fs-title);   font-weight: 600; letter-spacing: -0.025em; line-height: var(--ht-lh-tight); color: var(--ht-text); }
+.ht-value   { font-size: var(--ht-fs-value);   font-weight: 600; letter-spacing: -0.02em;  line-height: var(--ht-lh-tight);
+              font-variant-numeric: tabular-nums; color: var(--ht-text); }
+.ht-card-title { font-size: var(--ht-fs-body); font-weight: 600; letter-spacing: -0.015em; line-height: var(--ht-lh-tight); color: var(--ht-text); }
+.ht-section { margin: 0; font-size: var(--ht-fs-section); font-weight: 600; letter-spacing: -0.01em; line-height: var(--ht-lh-label); color: var(--ht-text); }
+.ht-lead    { margin: 0; font-size: var(--ht-fs-section); font-weight: 400; line-height: var(--ht-lh-text); color: var(--ht-muted); }
+.ht-tile-label { font-size: var(--ht-fs-label); font-weight: 500; line-height: var(--ht-lh-label); color: var(--ht-label); }
+.ht-meta    { font-size: var(--ht-fs-label); font-weight: 500; line-height: var(--ht-lh-label); color: var(--ht-muted); }
+.ht-caption { font-size: var(--ht-fs-label); font-weight: 400; line-height: var(--ht-lh-label); color: var(--ht-muted); }
+.ht-bar-label { font-size: var(--ht-fs-bar); font-weight: 500; line-height: var(--ht-lh-label); color: var(--ht-muted); }
+
+/* ===========================================================================
+   Układ
+   =========================================================================== */
+
+.ht-header {
+  box-sizing: border-box;
+  padding: var(--ht-header-top) var(--ht-gutter) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+}
+.ht-header__logo { width: 34px; height: 30px; display: block; }   /* sygnet: 30 px wysokości */
+
+/* Nagłówek ekranu narzędzia: powrót + tytuł (h1). */
+.ht-header--tool { justify-content: flex-start; gap: var(--ht-gap); }
+
+.ht-section-block {
+  box-sizing: border-box;
+  padding: var(--ht-gap-section) var(--ht-gutter) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ht-gap);
+  position: relative;
+}
+.ht-section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ht-gap); }
+
+.ht-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ht-gap-grid-y) var(--ht-gap-grid-x);
+}
+.ht-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ht-gap);
+}
+.ht-spacer { flex-grow: 1; }
+
+/* ===========================================================================
+   Stany - jedna reguła dla wszystkiego, co da się dotknąć
+
+   Najazd   → --ht-hover + --ht-line-strong
+   Wciśnięcie → --ht-press + skala (kafel / karta / mały element)
+   Na arkuszu spoczynek jest już --ht-hover, więc najazd i wciśnięcie → --ht-press.
+   =========================================================================== */
+
+.ht-tile__face, .ht-tile-label, .ht-card, .ht-card-sm, .ht-card-action, .ht-avatar, .ht-icon-btn,
+.ht-btn, .ht-btn-text, .ht-chip, .ht-segmented button, .ht-bar__item, .ht-bar__icon {
+  transition: background-color var(--ht-t-state) var(--ht-ease),
+              border-color     var(--ht-t-state) var(--ht-ease),
+              color            var(--ht-t-state) var(--ht-ease),
+              transform        var(--ht-t-press) var(--ht-ease);
+}
+
+/* ===========================================================================
+   Komponenty
+   =========================================================================== */
+
+/* --- kafel narzędzia ------------------------------------------------------ */
+.ht-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ht-gap-tile);
+}
+.ht-tile__face {
+  box-sizing: border-box;
+  width: 100%;                       /* szerokość kolumny, wysokość 92 px */
+  height: var(--ht-tile);
+  border-radius: var(--ht-r-xl);
+  background: var(--ht-surface);
+  border: 1px solid var(--ht-line);
+  color: var(--ht-icon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ht-tile:hover  .ht-tile__face { background: var(--ht-hover); border-color: var(--ht-line-strong); }
+.ht-tile:active .ht-tile__face { background: var(--ht-press); transform: scale(var(--ht-scale-tile)); }
+.ht-tile:hover  .ht-tile-label { color: var(--ht-text); }
+.ht-tile:focus-visible { outline: 0; }
+.ht-tile:focus-visible .ht-tile__face { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
+
+/* --- karty: wspólna baza -------------------------------------------------- */
+.ht-card, .ht-card-sm, .ht-card-action {
+  box-sizing: border-box;
+  padding: var(--ht-pad-card);
+  border-radius: var(--ht-r-lg);
+  background: var(--ht-raised);          /* treść na tle ekranu */
+  border: 1px solid var(--ht-line);
+  text-align: left;
+}
+:is(.ht-card, .ht-card-sm, .ht-card-action):hover  { background: var(--ht-hover); border-color: var(--ht-line-strong); }
+:is(.ht-card, .ht-card-sm, .ht-card-action):active { background: var(--ht-press); transform: scale(var(--ht-scale-card)); }
+
+/* karta szeroka: studzienka + tytuł/opis + strzałka */
+.ht-card { display: flex; align-items: center; gap: 14px; width: 100%; }
+.ht-card__text { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ht-card__chevron { color: var(--ht-faint); }
+
+/* karta mała (kafel stanu): ikona + kropka / wartość + etykieta */
+.ht-card-sm {
+  height: var(--ht-tile);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--ht-icon);
+}
+.ht-card-sm__top { display: flex; align-items: center; justify-content: space-between; }
+.ht-card-sm__text { display: flex; flex-direction: column; gap: 2px; }
+/* Karty o stałej wysokości: ciaśniejsza interlinia, żeby treść mieściła się w paddingu. */
+.ht-card-sm .ht-value { line-height: 1.15; }
+:is(.ht-card-sm, .ht-card-action) :is(.ht-meta, .ht-caption) { line-height: 1.25; }
+/* Tekst w karcie zawsze w jednej linii; nadmiar ucinamy wielokropkiem. */
+:is(.ht-card__text, .ht-card-sm__text, .ht-card-action__text) > * {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* karta akcji (w arkuszu): studzienka / tytuł + opis */
+.ht-card-action {
+  height: var(--ht-action);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ht-card-action__text { display: flex; flex-direction: column; gap: 2px; }
+.ht-card-action__top  { display: flex; align-items: center; justify-content: space-between; }
+
+/* studzienka pod ikoną: zawsze --ht-recess, ikona w akcencie */
+.ht-well {
+  width: var(--ht-well);
+  height: var(--ht-well);
+  flex-shrink: 0;
+  border-radius: var(--ht-r-sm);
+  background: var(--ht-recess);
+  color: var(--ht-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- awatar i przycisk ikonowy ------------------------------------------- */
+.ht-avatar, .ht-icon-btn {
+  box-sizing: border-box;
+  width: var(--ht-icon-btn);
+  height: var(--ht-icon-btn);
+  flex-shrink: 0;
+  border-radius: var(--ht-r-sm);
+  border: 1px solid var(--ht-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ht-avatar { background: var(--ht-raised); font-size: var(--ht-fs-label); font-weight: 600; color: var(--ht-label); }
+.ht-icon-btn { background: var(--ht-surface); color: var(--ht-icon); }
+:is(.ht-avatar, .ht-icon-btn):hover  { background: var(--ht-hover); border-color: var(--ht-line-strong); color: var(--ht-text); }
+:is(.ht-avatar, .ht-icon-btn):active { background: var(--ht-press); transform: scale(var(--ht-scale-sm)); }
+
+/* --- pole wpisywania i wyszukiwarka --------------------------------------- */
+.ht-field-group { display: flex; flex-direction: column; gap: var(--ht-gap-label); }
+.ht-field-label { font-size: var(--ht-fs-label); font-weight: 500; line-height: var(--ht-lh-label); color: var(--ht-muted); }
+.ht-field-wrap  { position: relative; display: flex; }
+
+.ht-field {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--ht-control);
+  padding: 0 16px;
+  border-radius: var(--ht-r-md);
+  background: var(--ht-surface);       /* nigdy --ht-recess: zniknie na tle */
+  border: 1px solid var(--ht-line);
+  font-size: var(--ht-fs-body);
+  color: var(--ht-text);
+  transition: background-color var(--ht-t-state) var(--ht-ease),
+              border-color     var(--ht-t-state) var(--ht-ease);
+}
+.ht-field::placeholder { color: var(--ht-faint); }
+.ht-field:hover { border-color: var(--ht-line-strong); }
+.ht-field:focus { background: var(--ht-raised); }  /* fokus podnosi pole o stopień, pierścień z reguły globalnej */
+.ht-field--search { padding-left: 46px; -webkit-appearance: none; appearance: none; }
+.ht-field__icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--ht-faint); pointer-events: none; }
+.ht-field__action { position: absolute; top: 0; right: 0; height: var(--ht-control); padding: 0 16px; }
+.ht-field-error { font-size: var(--ht-fs-label); font-weight: 500; line-height: var(--ht-lh-label); color: var(--ht-accent); }
+
+/* --- przyciski ------------------------------------------------------------ */
+.ht-btn {
+  box-sizing: border-box;
+  height: var(--ht-control);
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--ht-r-md);
+  font-size: var(--ht-fs-body);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  white-space: nowrap;
+}
+.ht-btn:active { transform: scale(var(--ht-scale-card)); }
+
+/* akcja główna */
+.ht-btn--primary { background: var(--ht-accent); color: var(--ht-on-accent); }
+.ht-btn--primary:hover { background: var(--ht-accent-hover); }
+
+/* drugorzędny: o stopień jaśniejszy od podłoża */
+.ht-btn--secondary { background: var(--ht-surface); border-color: var(--ht-line); color: var(--ht-text); }
+.ht-btn--secondary:hover  { background: var(--ht-hover); border-color: var(--ht-line-strong); }
+.ht-btn--secondary:active { background: var(--ht-press); }
+
+/* kasowanie: czerwony tekst, nigdy wypełnienie */
+.ht-btn--danger { background: none; border-color: var(--ht-line); color: var(--ht-accent); }
+.ht-btn--danger:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); color: var(--ht-accent-hover); }
+
+/* tekstowy */
+.ht-btn-text {
+  min-height: var(--ht-hit);
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--ht-fs-section);
+  font-weight: 600;
+  color: var(--ht-label);
+}
+.ht-btn-text:hover { color: var(--ht-text); }
+
+/* chip */
+.ht-chip {
+  height: var(--ht-chip);
+  padding: 0 12px;
+  border-radius: var(--ht-r-xs);
+  background: none;
+  font-size: var(--ht-fs-label);
+  font-weight: 600;
+  color: var(--ht-muted);
+  display: inline-flex;
+  align-items: center;
+}
+.ht-chip:hover  { background: var(--ht-hover); color: var(--ht-text); }
+.ht-chip:active { background: var(--ht-press); transform: scale(var(--ht-scale-sm)); }
+
+/* --- przełącznik segmentowy ---------------------------------------------- */
+.ht-segmented {
+  padding: 4px;
+  border-radius: var(--ht-r-md);
+  background: var(--ht-recess);
+  border: 1px solid var(--ht-line);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.ht-segmented button {
+  height: var(--ht-segment);
+  border-radius: var(--ht-r-sm);        /* 16 - 4 = 12: promienie współśrodkowe */
+  font-size: var(--ht-fs-section);
+  font-weight: 500;
+  color: var(--ht-muted);
+}
+.ht-segmented button:hover { color: var(--ht-text); }
+.ht-segmented button[aria-selected="true"] { background: var(--ht-press); color: var(--ht-text); font-weight: 600; }
+
+/* --- pasek dolny ---------------------------------------------------------- */
+.ht-bar {
+  box-sizing: border-box;
+  height: var(--ht-bar-h);
+  margin: 0 var(--ht-gutter-bar) calc(var(--ht-bar-bottom) + env(safe-area-inset-bottom));
+  padding: 0 8px;
+  border-radius: var(--ht-r-xl);
+  background: var(--ht-surface);
+  border: 1px solid var(--ht-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;            /* pasek stały: przy długiej treści zostaje na dole */
+  bottom: calc(var(--ht-bar-bottom) + env(safe-area-inset-bottom));
+}
+.ht-bar__item {
+  flex: 1 1 0;
+  min-height: var(--ht-hit);
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ht-icon);
+}
+.ht-bar__item:hover  { color: var(--ht-text); }
+.ht-bar__item:active { transform: scale(var(--ht-scale-sm)); }
+.ht-bar__item:focus-visible { border-radius: var(--ht-r-sm); }
+
+/* Ten sam gabaryt we WSZYSTKICH pozycjach, także bez wypełnienia.
+   Inaczej etykiety rozjeżdżają się w pionie. */
+.ht-bar__icon {
+  width: 34px;
+  height: 30px;
+  border-radius: var(--ht-r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+/* Pozycja wyróżniona (najwyżej jedna): pigułka --ht-raised, ikona w akcencie. */
+.ht-bar__item--primary .ht-bar__icon  { background: var(--ht-raised); color: var(--ht-accent); }
+.ht-bar__item--primary:hover .ht-bar__icon { background: var(--ht-hover); }
+.ht-bar__item--primary .ht-bar-label  { color: var(--ht-text); font-weight: 600; }
+/* Pozycja pusta, nieprzypisana: ikona wygaszona, kontur przerywany. */
+.ht-bar__item--empty { color: var(--ht-faint); }
+/* Pozycja, której ekran jest otwarty: etykieta w --ht-text, bez akcentu. */
+.ht-bar__item[aria-current="page"] .ht-bar-label { color: var(--ht-text); font-weight: 600; }
+
+/* --- kropka stanu --------------------------------------------------------
+   Statyczna = coś nowego czeka (aktualizacja).
+   Pulsująca (.ht-dot--live) = proces trwa teraz (np. stoper).             */
+.ht-dot {
+  width: var(--ht-dot);
+  height: var(--ht-dot);
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ht-accent);
+  display: block;
+}
+.ht-dot--live { animation: ht-pulse var(--ht-t-pulse) ease-in-out infinite; }
+.ht-bar__icon .ht-dot { position: absolute; top: 3px; right: 4px; }
+
+/* --- stan pusty: studzienka + tytuł + podpowiedź co zrobić ---------------- */
+.ht-empty {
+  padding: var(--ht-gap-section) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ht-gap);
+  text-align: center;
+}
+.ht-empty > p { margin: 0; }
+
+/* --- szkielet ładowania (kształt docelowej treści, bez spinnera) ---------- */
+.ht-skeleton { background: var(--ht-surface); border-radius: inherit;
+               animation: ht-breathe var(--ht-t-pulse) ease-in-out infinite; }
+
+/* --- panel nakładkowy -----------------------------------------------------
+   Przypięty do okna (fixed), nie do ekranu: arkusz zawsze na dole widoku.   */
+.ht-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--ht-scrim);
+  backdrop-filter: blur(16px) saturate(115%);
+  -webkit-backdrop-filter: blur(16px) saturate(115%);
+  animation: ht-fade var(--ht-t-scrim) var(--ht-ease) both;
+}
+.ht-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: var(--ht-screen-max);
+  margin-inline: auto;
+  box-sizing: border-box;
+  padding: 12px var(--ht-gutter) calc(var(--ht-gutter) + env(safe-area-inset-bottom));
+  border-radius: var(--ht-r-sheet) var(--ht-r-sheet) 0 0;
+  background: var(--ht-sheet);
+  border-top: 1px solid var(--ht-line-strong);
+  box-shadow: inset 0 1px 0 var(--ht-line), var(--ht-shadow-sheet);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: ht-sheet-up var(--ht-t-enter) var(--ht-ease) both;
+}
+.ht-sheet__handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ht-line-strong);
+  align-self: center;
+}
+.ht-sheet__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ht-sheet__head > div { display: flex; flex-direction: column; gap: 5px; }
+
+/* Wyjazd: klasa .is-closing, potem usunięcie z DOM po animationend. */
+.ht-scrim.is-closing { animation: ht-fade-out var(--ht-t-scrim) var(--ht-ease) both; }
+.ht-sheet.is-closing { animation: ht-sheet-down var(--ht-t-enter) var(--ht-ease) both; }
+
+/* Na arkuszu wszystko stoi o stopień wyżej: spoczynek --ht-hover. */
+.ht-sheet :is(.ht-card, .ht-card-sm, .ht-card-action, .ht-btn--secondary, .ht-icon-btn) { background: var(--ht-hover); }
+.ht-sheet :is(.ht-card, .ht-card-sm, .ht-card-action, .ht-btn--secondary, .ht-icon-btn):hover,
+.ht-sheet :is(.ht-card, .ht-card-sm, .ht-card-action, .ht-btn--secondary, .ht-icon-btn):active { background: var(--ht-press); }
+
+/* ===========================================================================
+   Ruch
+   Animujemy wyłącznie transform i opacity.
+   =========================================================================== */
+
+@keyframes ht-rise     { from { opacity: 0; transform: translateY(var(--ht-rise)); } to { opacity: 1; transform: none; } }
+@keyframes ht-sheet-up { from { opacity: 0; transform: translateY(var(--ht-rise-sheet)); } to { opacity: 1; transform: none; } }
+@keyframes ht-fade     { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ht-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ht-sheet-down { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(var(--ht-rise-sheet)); } }
+@keyframes ht-pulse    { 0%, 100% { opacity: 1; transform: scale(1); }
+                         50%      { opacity: 0.4; transform: scale(0.82); } }
+@keyframes ht-breathe  { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+/* Wejście bloku. Kolejność ustaw przez --i (0, 1, 2 …), krok 50 ms od 40 ms. */
+.ht-in { animation: ht-rise var(--ht-t-enter) var(--ht-ease) both;
+         animation-delay: calc(40ms + var(--i, 0) * var(--ht-step)); }
+
+/* Kaskada w siatce i w arkuszu: 30 ms na element. --start = opóźnienie całej grupy. */
+.ht-stagger > * { animation: ht-rise var(--ht-t-enter) var(--ht-ease) both;
+                  animation-delay: calc(var(--start, 60ms) + var(--i, 0) * var(--ht-stagger)); }
+
+/* ===========================================================================
+   Preferencje systemowe
+   =========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .ht-scrim { background: var(--ht-scrim-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .ht-sheet { background: var(--ht-raised); }
+}
