@@ -290,6 +290,8 @@ Wszystkie w `handytools-tokens.css`. Jeśli potrzebujesz czegoś, czego tu nie m
 | `--secondary` | `--ht-surface` (na arkuszu `--ht-hover`) | `--ht-text` | `--ht-hover` (na arkuszu `--ht-press`) |
 | `--danger` | brak, obrys `--ht-line` | `--ht-accent` | tło `--ht-hover`, tekst `--ht-accent-hover` |
 
+Zablokowany (`:disabled`, np. w trakcie operacji): tło `--ht-surface`, tekst `--ht-faint`, bez reakcji na dotyk. Na ekranie jest jedna aktywna akcja główna naraz; gdy pojawia się następna (np. „Sprawdź” → „Pobierz”), poprzednia przechodzi w `--secondary`.
+
 Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta przycisku głównego to najwyżej trzy słowa, zawsze jedna linia.
 
 **Przycisk tekstowy** `.ht-btn-text` - 13.5/600 w `--ht-label`, najazd `--ht-text`, pole dotyku 44 px wysokości.

@@ -20,6 +20,10 @@ Wszystko, co funkcjonalne w makietach, to **przykład**, nie zakres i nie propoz
 
 Makiety pokazują układ, gęstość ekranu i zachowanie komponentów. Nie buduj niczego na założeniu, że któraś z tych funkcji musi powstać, i nie przenoś ich nazw do nowych ekranów bez decyzji.
 
+**Ustalone narzędzia**
+
+- **Pobieranie** (wrzesień 2026): wideo i audio z linku, ok. 1800 serwisów (yt-dlp), wybór jakości, przycinanie, historia. Wymaga serwera na komputerze (`server/`). Szczegóły: `.scratch/pobieranie/spec.md`.
+
 ---
 
 ## 1. Czym jest HandyTools

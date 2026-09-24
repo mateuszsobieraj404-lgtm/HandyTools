@@ -2,6 +2,8 @@
 
 Webowa aplikacja na telefon (PWA), Vite + czysty JS, bez frameworka. Hosting: GitHub Pages (`.github/workflows/deploy.yml`, każdy push na `main`).
 
+- Serwer pobierania (narzędzie „Pobieranie”): `npm run server` na komputerze, hasło w `server/.env` (`HT_PASSWORD=`, poza repo). Telefon łączy się przez Tailscale Funnel. Wymaga Pythona z yt-dlp i ffmpeg.
+- Testy: `npm test`.
 - Uruchom: `npm run dev` (adres dla telefonu w tej samej sieci Wi-Fi pokazuje się jako „Network”).
 - Produkt i zasady: `Dokumentacja_produktu.md`. Wygląd: `Design System/` (tokeny w `handytools-tokens.css` są jedynym źródłem wartości, importowane wprost przez `src/main.js`).
 - Nowe narzędzie: wpis w `tools` w `src/content.js`, ikona w `src/icons.js`. Opcjonalne `render(el)` rysuje treść ekranu narzędzia.

@@ -9,6 +9,8 @@
    =========================================================================== */
 
 :root {
+  color-scheme: dark;  /* natywne kontrolki (lista wyboru, pasek przewijania) w ciemnym motywie */
+
   /* --- powierzchnie --------------------------------------------------------
      Jedna rodzina szarości (R = G, B wyżej o 2-7, rośnie z jasnością).
      Sześć stopni, bez wyjątków.
@@ -371,6 +373,10 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   justify-content: center;
 }
 
+/* Studzienka z miniaturą (np. okładka pobieranego filmu) zamiast ikony. */
+.ht-well { overflow: hidden; }
+.ht-well > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 /* --- awatar i przycisk ikonowy ------------------------------------------- */
 .ht-avatar, .ht-icon-btn {
   box-sizing: border-box;
@@ -444,6 +450,10 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 /* kasowanie: czerwony tekst, nigdy wypełnienie */
 .ht-btn--danger { background: none; border-color: var(--ht-line); color: var(--ht-accent); }
 .ht-btn--danger:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); color: var(--ht-accent-hover); }
+
+/* zablokowany (np. trwa operacja): wygaszony, bez akcentu, bez reakcji na dotyk */
+.ht-btn:disabled,
+.ht-btn:disabled:hover { background: var(--ht-surface); border-color: var(--ht-line); color: var(--ht-faint); cursor: default; transform: none; }
 
 /* tekstowy */
 .ht-btn-text {

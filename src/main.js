@@ -1,6 +1,7 @@
 import '../Design System/handytools-tokens.css';
 import logo from './sygnet.png';
 import { icon } from './icons.js';
+import { esc } from './html.js';
 import { tools, shortcuts, pages, bar } from './content.js';
 
 const app = document.getElementById('app');
@@ -9,13 +10,12 @@ const GRID_SIZE = 6; // tyle kafli widać, zanim rozwiniesz „Wszystkie”
 let showAll = false;
 let opener = null;
 
-const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l');
 
 /* --- klocki ------------------------------------------------------------- */
 
 const barHtml = (current) => `
-  <nav class="ht-bar ht-in" style="--i:3" aria-label="Pasek aplikacji">
+  <nav class="ht-bar ht-in" style="--i:4" aria-label="Pasek aplikacji">
     ${bar.map((b) => {
       const inner = `<span class="ht-bar__icon">${icon(b.icon, 'md')}</span><span class="ht-bar-label">${b.label}</span>`;
       if (b.page) return `<a class="ht-bar__item" href="#/${b.page}" ${current === b.page ? 'aria-current="page"' : ''}>${inner}</a>`;
@@ -24,6 +24,22 @@ const barHtml = (current) => `
       return `<button type="button" class="ht-bar__item${mod}" data-sheet="${b.sheet}"${label}>${inner}</button>`;
     }).join('')}
   </nav>`;
+
+const stateCard = (t, s) => `
+  <a class="ht-card-sm" href="#/narzedzie/${t.id}">
+    <span class="ht-card-sm__top">${icon(t.icon, 'md')}${s.live ? '<span class="ht-dot ht-dot--live" role="img" aria-label="Trwa"></span>' : ''}</span>
+    <span class="ht-card-sm__text"><span class="ht-value">${esc(s.value)}</span><span class="ht-meta">${t.name}</span></span>
+  </a>`;
+
+// Sekcja „Ostatnie”: tylko narzędzia, które mają bieżący stan.
+function recent() {
+  const cards = tools.map((t) => t.state?.() && stateCard(t, t.state())).filter(Boolean);
+  return cards.length ? `
+  <section class="ht-section-block ht-in" style="--i:2" aria-labelledby="h-recent">
+    <h2 class="ht-section" id="h-recent">Ostatnie</h2>
+    <div class="ht-pair">${cards.join('')}</div>
+  </section>` : '';
+}
 
 const empty = (iconName, title, lead) => `
   <div class="ht-empty">
@@ -60,12 +76,13 @@ const menuScreen = () => `
       <input class="ht-field ht-field--search" id="ht-find" type="search" placeholder="Szukaj narzędzia" autocomplete="off">
     </div>
   </div>
+  ${recent()}
   <section class="ht-section-block" aria-labelledby="h-tools">
-    <div class="ht-section-head ht-in" style="--i:2">
+    <div class="ht-section-head ht-in" style="--i:3">
       <h2 class="ht-section" id="h-tools">Narzędzia</h2>
       <button type="button" class="ht-chip ht-hit" data-action="all" aria-controls="grid"></button>
     </div>
-    <div class="ht-grid" id="grid" style="--start:190ms"></div>
+    <div class="ht-grid" id="grid" style="--start:240ms"></div>
   </section>`;
 
 // Szkielet ekranu narzędzia i podstrony: nagłówek z powrotem i tytułem, treść, pasek.
@@ -74,7 +91,7 @@ const subScreen = (title, content) => `
     <a class="ht-icon-btn ht-hit" href="#/" aria-label="Wróć do menu">${icon('wstecz', 'sm')}</a>
     <h1 class="ht-title">${title}</h1>
   </header>
-  <div class="ht-section-block ht-in" style="--i:1" id="content">${content}</div>`;
+  <div class="ht-in" style="--i:1" id="content">${content}</div>`;
 
 const sheets = {
   skroty: () => `
@@ -144,8 +161,9 @@ function route() {
   const page = pages[a];
   let body;
 
-  if (tool) body = subScreen(tool.name, tool.render ? '' : empty(tool.icon, 'W przygotowaniu', 'Ekran jest gotowy, funkcja dojdzie później.'));
-  else if (page) body = subScreen(page.title, empty(page.icon, 'W przygotowaniu', 'Ten ekran dostanie treść, gdy zapadnie decyzja o funkcji.'));
+  const block = (html) => `<div class="ht-section-block">${html}</div>`;
+  if (tool) body = subScreen(tool.name, tool.render ? '' : block(empty(tool.icon, 'W przygotowaniu', 'Ekran jest gotowy, funkcja dojdzie później.')));
+  else if (page) body = subScreen(page.title, block(empty(page.icon, 'W przygotowaniu', 'Ten ekran dostanie treść, gdy zapadnie decyzja o funkcji.')));
   else body = menuScreen();
 
   app.innerHTML = `<div class="ht-screen"><div class="ht-glow"></div>${body}<span class="ht-spacer"></span>${barHtml(page && a)}</div>`;

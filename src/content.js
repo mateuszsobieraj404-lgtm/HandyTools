@@ -1,9 +1,13 @@
+import * as pobieranie from './tools/pobieranie.js';
+
 // Zawartość z makiety. Wszystko tu jest POGLĄDOWE (Dokumentacja_produktu.md, sekcja 0)
 // i do podmiany, gdy zapadnie decyzja o funkcjach.
 
 // Nowe narzędzie = nowy wpis. Kontrakt: Dokumentacja_produktu.md, sekcja 3.
 // Opcjonalne `render(el)` rysuje treść ekranu narzędzia; bez niego ekran pokazuje stan pusty.
+// Opcjonalne `state()` zwraca { value, live? } dla karty stanu w menu albo null.
 export const tools = [
+  { id: 'pobieranie', name: 'Pobieranie', icon: 'pobieranie', ...pobieranie },
   { id: 'kalkulator', name: 'Kalkulator', icon: 'kalkulator' },
   { id: 'konwerter', name: 'Konwerter', icon: 'konwerter' },
   { id: 'notatki', name: 'Notatki', icon: 'notatki' },
