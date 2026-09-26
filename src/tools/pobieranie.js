@@ -25,6 +25,51 @@ const save = (k, v) => {
 
 const plural = (n) => (n === 1 ? 'pobranie' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'pobrania' : 'pobrań');
 const base = (cfg) => cfg.url.replace(/\/+$/, '');
+const fileUrl = (job) => `${base(load(KEY.cfg, {}))}/jobs/${job.id}/file`;
+
+// Na iPhonie aplikacja z ekranu głównego nie pobiera plików linkiem. Jak w cobalt.tools:
+// plik ściągamy do pamięci i zapisujemy przez okno Udostępnij (→ Zdjęcia albo Pliki).
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// ponytail: plik trzymany w RAM (części + gotowy File), a karta na iPhonie ma ok. 384 MB.
+// Większe pliki: zapis przyrostowy do OPFS, jak robi cobalt.
+const IOS_LIMIT = 200_000_000;
+
+// Przesyłanie gotowego pliku z komputera do pamięci telefonu. Żyje poza ekranem narzędzia,
+// więc wyjście i powrót nie przerywa przesyłania; ekran podpina się przez `update`.
+let transfer = null; // { id, progress, file, error, tooBig, update }
+
+async function fetchFile(job) {
+  const t = (transfer = { id: job.id, progress: 0, file: null, error: null });
+  const update = () => t.update?.();
+  try {
+    const res = await fetch(fileUrl(job));
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Błąd serwera (${res.status}).`);
+    const total = Number(res.headers.get('Content-Length')) || 0;
+    if (IOS && total > IOS_LIMIT) {
+      t.tooBig = true;
+      throw new Error(`Plik ma ${Math.round(total / 1e6)} MB, a iPhone zapisze z aplikacji najwyżej ${IOS_LIMIT / 1e6} MB. Wybierz niższą jakość albo krótszy fragment.`);
+    }
+    const reader = res.body.getReader();
+    const chunks = [];
+    let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      got += value.length;
+      const p = total ? Math.floor((got * 100) / total) : 0;
+      if (p !== t.progress) {
+        t.progress = p;
+        update();
+      }
+    }
+    const name = res.headers.get('Content-Disposition')?.match(/filename\*=UTF-8''([^;]+)/)?.[1];
+    t.file = new File(chunks, name ? decodeURIComponent(name) : 'plik', { type: res.headers.get('Content-Type') || '' });
+  } catch (ex) {
+    t.error = ex instanceof TypeError ? 'Przesyłanie przerwane. Sprawdź internet i spróbuj ponownie.' : ex.message;
+  }
+  update();
+}
 
 async function api(path, body, cfg = load(KEY.cfg, {})) {
   let res;
@@ -239,18 +284,32 @@ function main(el) {
     }
   }
 
+  // Etapy: komputer pobiera → komputer łączy → telefon ściąga plik do pamięci → „Zapisz”.
   function renderJob(job, server) {
+    if (!el.isConnected) return;
     jobBox.hidden = false;
-    const value = server.status === 'done' ? 'Gotowe'
-      : server.status === 'error' ? 'Błąd'
-      : server.stage === 'processing' ? 'Łączę pliki' : `${server.progress}%`;
+    const local = transfer?.id === job.id ? transfer : null;
+    const [value, meta] = server.status === 'error' ? ['Błąd', job.title]
+      : server.status === 'running' && server.stage === 'processing' ? ['Łączę pliki', 'Na komputerze']
+      : server.status === 'running' ? [`${server.progress}%`, 'Pobieram na komputer']
+      : local?.file ? ['Gotowe', job.title]
+      : local?.error ? ['Błąd', job.title]
+      : [`${local?.progress ?? 0}%`, 'Przesyłam na telefon'];
+    const live = server.status === 'running' || (server.status === 'done' && !local?.file && !local?.error);
+    const isAudio = /^Audio/.test(job.label);
     jobBox.innerHTML = `
       <div class="ht-card-sm">
-        <span class="ht-card-sm__top">${icon('pobieranie', 'md')}${server.status === 'running' ? '<span class="ht-dot ht-dot--live" role="img" aria-label="Pobieranie trwa"></span>' : ''}</span>
-        <span class="ht-card-sm__text"><span class="ht-value">${value}</span><span class="ht-meta">${esc(job.title)}</span></span>
+        <span class="ht-card-sm__top">${icon('pobieranie', 'md')}${live ? '<span class="ht-dot ht-dot--live" role="img" aria-label="Pobieranie trwa"></span>' : ''}</span>
+        <span class="ht-card-sm__text"><span class="ht-value">${value}</span><span class="ht-meta">${esc(meta)}</span></span>
       </div>
       ${server.status === 'error' ? `<span class="ht-field-error" role="alert">${esc(server.error)}</span>` : ''}
-      ${server.status === 'done' ? `<a class="ht-btn ht-btn--primary" href="${esc(base(load(KEY.cfg, {})))}/jobs/${esc(job.id)}/file" data-dl="saved">${icon('pobieranie', 'sm')}Zapisz plik</a>` : ''}`;
+      ${local?.error ? `<span class="ht-field-error" role="alert">${esc(local.error)}</span>
+        ${local.tooBig
+          ? `<a class="ht-btn ht-btn--secondary" href="${esc(fileUrl(job))}" target="_blank" rel="noopener">Otwórz w Safari</a>`
+          : '<button type="button" class="ht-btn ht-btn--secondary" data-dl="refetch">Spróbuj ponownie</button>'}` : ''}
+      ${local?.file ? `
+        <button type="button" class="ht-btn ht-btn--primary" data-dl="save">${icon('pobieranie', 'sm')}Zapisz</button>
+        ${IOS ? `<span class="ht-caption">W oknie Udostępnij wybierz „${isAudio ? 'Zachowaj w Plikach' : 'Zachowaj wideo'}”${isAudio ? '' : ', żeby trafiło do Zdjęć'}.</span>` : ''}` : ''}`;
   }
 
   async function poll() {
@@ -275,9 +334,24 @@ function main(el) {
       save(KEY.history, [entry, ...load(KEY.history, [])].slice(0, HISTORY_MAX));
       renderHistory();
     }
-    if (server.status === 'error') save(KEY.job, null);
+    if (server.status === 'error') {
+      save(KEY.job, null);
+      const btn = el.querySelector('[data-dl="download"]');
+      if (btn) btn.disabled = false;
+    }
+    if (server.status === 'done') {
+      if (transfer?.id !== job.id) fetchFile(job);
+      transfer.update = () => renderJob(job, server); // także po powrocie na ekran w trakcie przesyłania
+    }
+  }
+
+  // Zadanie zamknięte (plik zapisany): czyść i odblokuj „Pobierz”.
+  function finish() {
+    save(KEY.job, null);
+    transfer = null;
+    jobBox.hidden = true;
     const btn = el.querySelector('[data-dl="download"]');
-    if (btn && server.status === 'error') btn.disabled = false;
+    if (btn) btn.disabled = false;
   }
 
   /* historia */
@@ -323,14 +397,27 @@ function main(el) {
     const action = t.dataset.dl;
     if (action === 'settings') settings(el);
     if (action === 'download') download();
-    if (action === 'saved') {
-      // Link robi swoje (przeglądarka zapisuje plik); zadanie jest zamknięte.
-      save(KEY.job, null);
-      setTimeout(() => {
-        jobBox.hidden = true;
-        const btn = el.querySelector('[data-dl="download"]');
-        if (btn) btn.disabled = false;
-      });
+    if (action === 'save') {
+      // Musi ruszyć od razu w tym dotknięciu: Safari pozwala otworzyć Udostępnij tylko ok. 5 s po nim.
+      const { file } = transfer;
+      if (IOS && navigator.canShare?.({ files: [file] })) {
+        navigator.share({ files: [file] }).then(finish, (ex) => {
+          if (ex.name !== 'AbortError') showError($('#dl-err'), `Nie udało się zapisać: ${ex.message}`);
+        });
+      } else {
+        // Android i komputer: zwykłe pobranie pliku z pamięci.
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(file);
+        a.download = file.name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+        finish();
+      }
+    }
+    if (action === 'refetch') {
+      const job = load(KEY.job, null);
+      transfer = null;
+      if (job) poll();
     }
     if (action === 'clear' && confirm('Wyczyścić historię pobrań?')) {
       save(KEY.history, []);

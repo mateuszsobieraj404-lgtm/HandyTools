@@ -188,6 +188,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length'); // nazwa pliku i postęp w aplikacji
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
 
   const { pathname } = new URL(req.url, 'http://x');
@@ -200,12 +201,11 @@ const server = http.createServer(async (req, res) => {
       return res.end('Serwer HandyTools działa.\n\nTo nie jest strona do otwierania. Wpisz ten adres w aplikacji HandyTools: Pobieranie → Adres serwera.');
     }
 
-    // Plik pobiera przeglądarka zwykłym linkiem (bez nagłówka), więc chroni go losowy,
-    // jednorazowy identyfikator zadania zamiast hasła.
+    // Plik chroni losowy identyfikator zadania zamiast hasła (działa też jako zwykły link,
+    // np. „Otwórz w Safari”). Zostaje do odbioru do JOB_TTL, żeby telefon mógł ponowić przesyłanie.
     if (req.method === 'GET' && a === 'jobs' && sub === 'file') {
       const job = jobs.get(id);
       if (job?.status !== 'done') return send(res, 404, { error: 'Plik wygasł albo jeszcze się pobiera.' });
-      res.on('finish', () => dropJob(id));
       return await sendFile(res, job);
     }
 

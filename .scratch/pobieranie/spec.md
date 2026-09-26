@@ -31,9 +31,9 @@ Wklejam link z dowolnego serwisu, wybieram wideo albo audio, jakość i opcjonal
 - `POST /info` `{url}` → `{title, thumbnail, duration, site, heights: [1080, 720, …]}`
 - `POST /jobs` `{url, type: video|audio, height?, format: mp4|mp3|m4a, from?, to?}` → `{id}`
 - `GET /jobs/:id` → `{status: running|done|error, progress, error?}`
-- `GET /jobs/:id/file` → plik z `Content-Disposition: attachment`. Identyfikator jednorazowy, losowy; plik usuwany po pobraniu albo po 1 h.
+- `GET /jobs/:id/file` → plik z `Content-Disposition: attachment`. Identyfikator losowy; plik usuwany po 1 h (można ponowić przesyłanie).
 
-Plik pobiera przeglądarka natywnie (link), nie przez pamięć telefonu.
+Zapis na telefonie jak w cobalt.tools: aplikacja ściąga plik do pamięci (z postępem), a „Zapisz” otwiera okno Udostępnij (iPhone: „Zachowaj wideo” → Zdjęcia, „Zachowaj w Plikach”). Powód: na iPhonie aplikacja z ekranu głównego nie pobiera plików linkiem. Limit 200 MB (pamięć karty). Android i komputer: zwykłe pobranie z pamięci.
 
 ## Stany (Dokumentacja_produktu.md, sekcja 2)
 
