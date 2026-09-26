@@ -28,16 +28,17 @@ Makiety pokazują układ, gęstość ekranu i zachowanie komponentów. Nie buduj
 
 ## 1. Czym jest HandyTools
 
-Webowa aplikacja na telefon, w której siedzi zestaw niezależnych, drobnych narzędzi. Jedno wejście zamiast kilkunastu osobnych apek i zakładek w przeglądarce.
+Webowa aplikacja na telefon, w której siedzi zestaw drobnych narzędzi. Jedno wejście zamiast kilkunastu osobnych apek i zakładek w przeglądarce.
 
-**Dla kogo:** osoba, która w trakcie pracy w terenie potrzebuje szybko coś policzyć, zmierzyć, spisać albo sprawdzić. Telefon w jednej ręce, druga zajęta.
+**Dla kogo:** autor i kilka zaufanych osób. Ktoś, kto w biegu potrzebuje szybko coś zrobić jednym narzędziem. Telefon w jednej ręce, druga zajęta. Narzędzia są ogólne, bez jednej branży. Pełny opis produktu: `PRODUCT.md`.
 
-**Kierunek (robocze zasady, do potwierdzenia przy pierwszych funkcjach)**
+**Zasady (potwierdzone we wrześniu 2026)**
 
 1. **Narzędzie otwiera się w dwa dotknięcia.** Menu to wyrzutnia, nie katalog.
-2. **Narzędzia są niezależne.** Każde działa samo; wyjęcie dowolnego niczego nie psuje.
+2. **Narzędzia mogą ze sobą współpracować.** Przyszłe narzędzia będą od siebie zależne. Zależność ma być jawna; narzędzie bez swojego partnera mówi, czego brakuje, zamiast się psuć.
 3. **Stan przetrwa zamknięcie karty.** Wpisane dane mają być na miejscu po powrocie.
 4. **Aplikacja nie zagaduje.** Zero onboardingu, powiadomień marketingowych i pustych ekranów powitalnych.
+5. **Prywatne z założenia.** Dane zostają u autora; nic prywatnego nie trafia do publicznego repozytorium.
 
 Czy będzie konto, logowanie i synchronizacja, nie jest ustalone.
 
