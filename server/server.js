@@ -194,6 +194,12 @@ const server = http.createServer(async (req, res) => {
   const [, a, id, sub] = pathname.split('/'); // '/jobs/<id>/file' → ['', 'jobs', id, 'file']
 
   try {
+    // Ktoś otworzył adres serwera w przeglądarce: powiedz, gdzie go wpisać.
+    if (req.method === 'GET' && pathname === '/') {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('Serwer HandyTools działa.\n\nTo nie jest strona do otwierania. Wpisz ten adres w aplikacji HandyTools: Pobieranie → Adres serwera.');
+    }
+
     // Plik pobiera przeglądarka zwykłym linkiem (bez nagłówka), więc chroni go losowy,
     // jednorazowy identyfikator zadania zamiast hasła.
     if (req.method === 'GET' && a === 'jobs' && sub === 'file') {
