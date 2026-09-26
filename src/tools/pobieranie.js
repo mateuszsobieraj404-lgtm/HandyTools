@@ -1,12 +1,25 @@
-// Narzędzie „Pobieranie”: wideo i audio z linku przez serwer na komputerze (server/server.js).
+// Narzędzie „Pobieraczek”: wideo i audio z linku przez serwer na komputerze (server/server.js).
 // Spec: .scratch/pobieranie/spec.md
 import { icon } from '../icons.js';
 import { esc } from '../html.js';
 import { toSeconds, formatTime } from '../time.js';
 
-const KEY = { cfg: 'ht.pobieranie.serwer', history: 'ht.pobieranie.historia', job: 'ht.pobieranie.zadanie' };
+const KEY = {
+  cfg: 'ht.pobieranie.serwer',
+  prefs: 'ht.pobieranie.domyslne',
+  history: 'ht.pobieranie.historia',
+  job: 'ht.pobieranie.zadanie',
+};
 const HISTORY_MAX = 20;
 const POLL_MS = 1000;
+const SETTINGS_HREF = '#/ustawienia/pobieranie';
+
+const VIDEO_FORMATS = { mp4: 'MP4 (zapis w Zdjęciach)', mkv: 'MKV (tylko Pliki)' };
+const AUDIO_FORMATS = { mp3: 'MP3', m4a: 'M4A', flac: 'FLAC (bezstratny)', wav: 'WAV (bezstratny)' };
+const QUALITIES = ['best', 2160, 1440, 1080, 720, 480, 360];
+const BITRATES = [320, 256, 192, 128];
+const LOSSY = ['mp3', 'm4a']; // tylko tu bitrate ma znaczenie
+const DEFAULT_PREFS = { videoFormat: 'mp4', videoQuality: 'best', audioFormat: 'mp3', audioBitrate: 256 };
 
 const load = (k, fallback) => {
   try {
@@ -22,10 +35,47 @@ const save = (k, v) => {
     /* prywatne okno: działa, tylko nie zapamięta */
   }
 };
+const prefs = () => ({ ...DEFAULT_PREFS, ...load(KEY.prefs, {}) });
 
 const plural = (n) => (n === 1 ? 'pobranie' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'pobrania' : 'pobrań');
-const base = (cfg) => cfg.url.replace(/\/+$/, '');
-const fileUrl = (job) => `${base(load(KEY.cfg, {}))}/jobs/${job.id}/file`;
+const base = (cfg = load(KEY.cfg, {})) => cfg.url.replace(/\/+$/, '');
+const fileUrl = (job) => `${base()}/jobs/${job.id}/file`;
+const options = (entries, selected) => entries.map(([v, label]) => `<option value="${v}"${String(v) === String(selected) ? ' selected' : ''}>${label}</option>`).join('');
+const qualityLabel = (q) => (q === 'best' ? 'Najlepsza' : `${q}p`);
+
+function formatSize(bytes) {
+  if (bytes < 1e6) return `${Math.max(1, Math.round(bytes / 1e3))} kB`;
+  if (bytes < 1e9) return `${(bytes / 1e6).toFixed(bytes < 1e7 ? 1 : 0).replace('.', ',')} MB`;
+  return `${(bytes / 1e9).toFixed(1).replace('.', ',')} GB`;
+}
+
+// Preferowana jakość, a gdy jej nie ma: najbliższa niższa, a gdy nie ma niższej: najbliższa wyższa.
+// `heights` malejąco, np. [1080, 720, 360].
+export function pickHeight(heights, pref) {
+  if (!heights.length) return null;
+  if (pref === 'best') return heights[0];
+  return heights.find((h) => h <= pref) ?? heights[heights.length - 1];
+}
+
+// Pierwszy link w tekście (aplikacje czasem kopiują „Zobacz to: https://…”).
+const findUrl = (text) => String(text ?? '').match(/https?:\/\/\S+/)?.[0] ?? String(text ?? '').trim();
+
+// Schowek: YouTube, X i inne aplikacje na iPhonie kopiują link jako typ „adres URL”,
+// a nie „tekst”, więc najpierw czytamy wszystkie typy, a dopiero potem sam tekst.
+async function readClipboard() {
+  if (navigator.clipboard?.read) {
+    for (const item of await navigator.clipboard.read()) {
+      for (const type of ['text/uri-list', 'text/plain']) {
+        if (!item.types.includes(type)) continue;
+        const text = await (await item.getType(type)).text();
+        const line = text.split(/\r?\n/).find((l) => l.trim() && !l.startsWith('#'));
+        if (line) return findUrl(line);
+      }
+    }
+    return '';
+  }
+  return findUrl(await navigator.clipboard.readText());
+}
 
 // Na iPhonie aplikacja z ekranu głównego nie pobiera plików linkiem. Jak w cobalt.tools:
 // plik ściągamy do pamięci i zapisujemy przez okno Udostępnij (→ Zdjęcia albo Pliki).
@@ -36,7 +86,7 @@ const IOS_LIMIT = 200_000_000;
 
 // Przesyłanie gotowego pliku z komputera do pamięci telefonu. Żyje poza ekranem narzędzia,
 // więc wyjście i powrót nie przerywa przesyłania; ekran podpina się przez `update`.
-let transfer = null; // { id, progress, file, error, tooBig, update }
+let transfer = null; // { id, progress, file, error, tooBig, update, sharing, shown }
 
 async function fetchFile(job) {
   const t = (transfer = { id: job.id, progress: 0, file: null, error: null });
@@ -47,7 +97,7 @@ async function fetchFile(job) {
     const total = Number(res.headers.get('Content-Length')) || 0;
     if (IOS && total > IOS_LIMIT) {
       t.tooBig = true;
-      throw new Error(`Plik ma ${Math.round(total / 1e6)} MB, a iPhone zapisze z aplikacji najwyżej ${IOS_LIMIT / 1e6} MB. Wybierz niższą jakość albo krótszy fragment.`);
+      throw new Error(`Plik ma ${formatSize(total)}, a iPhone zapisze z aplikacji najwyżej ${formatSize(IOS_LIMIT)}. Wybierz niższą jakość albo krótszy fragment.`);
     }
     const reader = res.body.getReader();
     const chunks = [];
@@ -98,16 +148,27 @@ export function state() {
 }
 
 export function render(el) {
-  load(KEY.cfg, null) ? main(el) : settings(el);
+  if (load(KEY.cfg, null)) return main(el);
+  el.innerHTML = `
+    <div class="ht-section-block">
+      <div class="ht-empty">
+        <span class="ht-well">${icon('pobieranie', 'md')}</span>
+        <p class="ht-card-title">Połącz z komputerem</p>
+        <p class="ht-lead">Pobieraczek działa przez serwer na Twoim komputerze. Wpisz jego adres i hasło w ustawieniach.</p>
+      </div>
+      <a class="ht-btn ht-btn--primary" href="${SETTINGS_HREF}">${icon('ustawienia', 'sm')}Ustaw serwer</a>
+    </div>`;
 }
 
-/* --- ustawienia serwera --------------------------------------------------- */
+/* --- ustawienia (pasek → Ustawienia → Pobieraczek) --------------------------- */
 
-function settings(el) {
+export function settings(el) {
   const cfg = load(KEY.cfg, { url: '', password: '' });
+  const p = prefs();
   el.innerHTML = `
-    <form class="ht-section-block" id="dl-settings" novalidate>
-      <p class="ht-lead">Pobieranie idzie przez serwer na Twoim komputerze. Wpisz jego adres i hasło z pliku <code>server/.env</code>.</p>
+    <form class="ht-section-block" id="dl-srv" novalidate aria-labelledby="dl-s-srv">
+      <h2 class="ht-section" id="dl-s-srv">Serwer</h2>
+      <p class="ht-lead">Pobieraczek działa przez serwer na Twoim komputerze. Hasło jest w pliku <code>server/.env</code>.</p>
       <div class="ht-field-group">
         <label class="ht-field-label" for="dl-server">Adres serwera</label>
         <input class="ht-field" id="dl-server" type="url" inputmode="url" autocomplete="off" placeholder="https://komputer.tailnet.ts.net" value="${esc(cfg.url)}">
@@ -119,25 +180,57 @@ function settings(el) {
           <button type="button" class="ht-btn-text ht-field__action" data-dl="reveal">Pokaż</button>
         </div>
         <span class="ht-field-error" id="dl-set-err" role="alert" hidden></span>
+        <span class="ht-caption" id="dl-set-ok" role="status" hidden>Połączono z serwerem.</span>
       </div>
-      <button class="ht-btn ht-btn--primary" type="submit">Zapisz</button>
-      ${cfg.url ? '<button class="ht-btn ht-btn--secondary" type="button" data-dl="back">Anuluj</button>' : ''}
-    </form>`;
+      <button class="ht-btn ht-btn--primary" type="submit">Zapisz i sprawdź</button>
+    </form>
+
+    <section class="ht-section-block" aria-labelledby="dl-s-video">
+      <h2 class="ht-section" id="dl-s-video">Wideo</h2>
+      <div class="ht-field-group">
+        <label class="ht-field-label" for="dl-p-vformat">Format domyślny</label>
+        <select class="ht-field" id="dl-p-vformat" data-pref="videoFormat">${options(Object.entries(VIDEO_FORMATS), p.videoFormat)}</select>
+      </div>
+      <div class="ht-field-group">
+        <label class="ht-field-label" for="dl-p-quality">Jakość domyślna</label>
+        <select class="ht-field" id="dl-p-quality" data-pref="videoQuality">${options(QUALITIES.map((q) => [q, qualityLabel(q)]), p.videoQuality)}</select>
+        <span class="ht-caption">Gdy tej jakości nie ma, wybierana jest najbliższa niższa.</span>
+      </div>
+    </section>
+
+    <section class="ht-section-block" aria-labelledby="dl-s-audio">
+      <h2 class="ht-section" id="dl-s-audio">Audio</h2>
+      <div class="ht-field-group">
+        <label class="ht-field-label" for="dl-p-aformat">Format domyślny</label>
+        <select class="ht-field" id="dl-p-aformat" data-pref="audioFormat">${options(Object.entries(AUDIO_FORMATS), p.audioFormat)}</select>
+      </div>
+      <div class="ht-field-group">
+        <label class="ht-field-label" for="dl-p-bitrate">Bitrate domyślny</label>
+        <select class="ht-field" id="dl-p-bitrate" data-pref="audioBitrate">${options(BITRATES.map((b) => [b, `${b} kb/s`]), p.audioBitrate)}</select>
+        <span class="ht-caption">Dotyczy MP3 i M4A. Formaty i jakość zmienisz też przy każdym pobraniu. Zmiany zapisują się od razu.</span>
+      </div>
+    </section>`;
 
   const err = el.querySelector('#dl-set-err');
+  const ok = el.querySelector('#dl-set-ok');
+  el.onchange = (e) => {
+    const key = e.target.dataset.pref;
+    if (!key) return;
+    const raw = e.target.value;
+    save(KEY.prefs, { ...prefs(), [key]: key === 'audioBitrate' || (key === 'videoQuality' && raw !== 'best') ? Number(raw) : raw });
+  };
   el.onclick = (e) => {
-    const t = e.target.closest('[data-dl]');
-    if (t?.dataset.dl === 'reveal') {
-      const f = el.querySelector('#dl-pass');
-      f.type = f.type === 'password' ? 'text' : 'password';
-      t.textContent = f.type === 'password' ? 'Pokaż' : 'Ukryj';
-    }
-    if (t?.dataset.dl === 'back') main(el);
+    const t = e.target.closest('[data-dl="reveal"]');
+    if (!t) return;
+    const f = el.querySelector('#dl-pass');
+    f.type = f.type === 'password' ? 'text' : 'password';
+    t.textContent = f.type === 'password' ? 'Pokaż' : 'Ukryj';
   };
   el.onsubmit = async (e) => {
     e.preventDefault();
     const next = { url: el.querySelector('#dl-server').value.trim(), password: el.querySelector('#dl-pass').value };
     err.hidden = true;
+    ok.hidden = true;
     if (!/^https?:\/\//.test(next.url)) {
       err.textContent = 'Adres musi zaczynać się od https://';
       err.hidden = false;
@@ -149,12 +242,13 @@ function settings(el) {
     try {
       await api('/health', null, next);
       save(KEY.cfg, next);
-      main(el);
+      ok.hidden = false;
     } catch (ex) {
       err.textContent = ex.message;
       err.hidden = false;
+    } finally {
       btn.disabled = false;
-      btn.textContent = 'Zapisz';
+      btn.textContent = 'Zapisz i sprawdź';
     }
   };
 }
@@ -163,7 +257,8 @@ function settings(el) {
 
 function main(el) {
   let info = null; // wynik /info dla bieżącego linku
-  let type = 'video';
+  let choice = null; // { kind, height, container, format, bitrate }
+  let sel = null; // wybrany fragment w sekundach: { from, to, max }
 
   el.innerHTML = `
     <form class="ht-section-block" id="dl-form" novalidate>
@@ -181,7 +276,7 @@ function main(el) {
     <section class="ht-section-block" id="dl-job" aria-live="polite" hidden></section>
     <section class="ht-section-block" id="dl-history" aria-labelledby="dl-h" hidden></section>
     <div class="ht-section-block">
-      <button type="button" class="ht-btn-text" data-dl="settings" style="align-self:flex-start">Ustawienia serwera</button>
+      <a class="ht-btn-text" href="${SETTINGS_HREF}" style="align-self:flex-start">Ustawienia Pobieraczka</a>
     </div>`;
 
   const $ = (sel) => el.querySelector(sel);
@@ -196,7 +291,8 @@ function main(el) {
 
   /* sprawdzenie linku */
   async function check() {
-    const url = urlField.value.trim();
+    const url = findUrl(urlField.value);
+    urlField.value = url;
     showError($('#dl-err'), '');
     if (!url) return showError($('#dl-err'), 'Wklej link.');
     result.hidden = false;
@@ -204,9 +300,17 @@ function main(el) {
     $('#dl-check').disabled = true;
     try {
       info = await api('/info', { url });
-      type = info.heights.length ? 'video' : 'audio';
+      const p = prefs();
+      choice = {
+        kind: info.heights.length ? 'video' : 'audio',
+        height: pickHeight(info.heights, p.videoQuality),
+        container: p.videoFormat,
+        format: p.audioFormat,
+        bitrate: p.audioBitrate,
+      };
+      sel = info.duration ? { from: 0, to: Math.round(info.duration), max: Math.round(info.duration) } : null;
       $('#dl-check').className = 'ht-btn ht-btn--secondary'; // akcją główną jest teraz „Pobierz”
-      renderOptions();
+      renderResult();
     } catch (ex) {
       result.hidden = true;
       showError($('#dl-err'), ex.message);
@@ -215,25 +319,23 @@ function main(el) {
     }
   }
 
-  function renderOptions() {
+  const ext = () => (choice.kind === 'audio' ? choice.format : choice.container);
+
+  function renderResult() {
     const meta = [info.site, info.duration && formatTime(info.duration)].filter(Boolean).join(' · ');
-    const quality = type === 'video'
-      ? info.heights.map((h) => `<option value="${h}">${h}p</option>`).join('')
-      : '<option value="mp3">MP3</option><option value="m4a">M4A (lepsza jakość, mniejszy plik)</option>';
+    const dur = sel?.max;
     result.innerHTML = `
       <div class="ht-card">
         <span class="ht-well">${info.thumbnail ? `<img src="${esc(info.thumbnail)}" alt="" referrerpolicy="no-referrer">` : icon('pobieranie', 'md')}</span>
         <span class="ht-card__text"><span class="ht-card-title">${esc(info.title)}</span><span class="ht-caption">${esc(meta)}</span></span>
       </div>
-      ${info.heights.length ? `
-      <div class="ht-segmented" role="tablist" aria-label="Rodzaj pliku">
-        <button type="button" class="ht-hit" role="tab" data-type="video" aria-selected="${type === 'video'}">Wideo</button>
-        <button type="button" class="ht-hit" role="tab" data-type="audio" aria-selected="${type === 'audio'}">Audio</button>
+      <div id="dl-preview-box"></div>
+      ${sel ? `
+      <div class="ht-range" id="dl-range">
+        <div class="ht-range__track"><div class="ht-range__fill"></div></div>
+        <input type="range" id="dl-rfrom" min="0" max="${dur}" step="1" value="0" aria-label="Początek fragmentu">
+        <input type="range" id="dl-rto" min="0" max="${dur}" step="1" value="${dur}" aria-label="Koniec fragmentu">
       </div>` : ''}
-      <div class="ht-field-group">
-        <label class="ht-field-label" for="dl-quality">${type === 'video' ? 'Jakość' : 'Format'}</label>
-        <select class="ht-field" id="dl-quality">${quality}</select>
-      </div>
       <div class="ht-pair">
         <div class="ht-field-group">
           <label class="ht-field-label" for="dl-from">Od</label>
@@ -244,36 +346,186 @@ function main(el) {
           <input class="ht-field" id="dl-to" type="text" autocomplete="off" placeholder="${info.duration ? formatTime(info.duration) : 'koniec'}">
         </div>
       </div>
-      <span class="ht-caption">Puste pola: cały materiał. Czas jak 1:05 albo 1:02:03.</span>
       <span class="ht-field-error" id="dl-trim-err" role="alert" hidden></span>
+      ${info.heights.length ? `
+      <div class="ht-segmented" role="tablist" aria-label="Rodzaj pliku">
+        ${[['video', 'Wideo'], ['mute', 'Bez dźwięku'], ['audio', 'Audio']].map(([k, label]) =>
+          `<button type="button" class="ht-hit" role="tab" data-kind="${k}" aria-selected="${choice.kind === k}">${label}</button>`).join('')}
+      </div>` : ''}
+      <div class="ht-pair" id="dl-opts"></div>
+      <div class="ht-field-group">
+        <label class="ht-field-label" for="dl-name">Nazwa pliku</label>
+        <div class="ht-field-wrap">
+          <input class="ht-field" id="dl-name" type="text" autocomplete="off" value="${esc(info.title)}" style="padding-right:84px">
+          <span class="ht-field__action ht-meta" id="dl-ext" style="display:flex; align-items:center; pointer-events:none"></span>
+        </div>
+      </div>
+      <span class="ht-meta" id="dl-size" role="status"></span>
       <button type="button" class="ht-btn ht-btn--primary" data-dl="download" ${load(KEY.job, null) ? 'disabled' : ''}>${icon('pobieranie', 'sm')}Pobierz</button>`;
+    renderOptions();
+    renderPreview();
+    syncRange();
+  }
+
+  // Selekty zależne od rodzaju: jakość + format (wideo) albo format + bitrate (audio).
+  function renderOptions() {
+    const select = (id, label, entries, value) => `
+      <div class="ht-field-group">
+        <label class="ht-field-label" for="${id}">${label}</label>
+        <select class="ht-field" id="${id}">${options(entries, value)}</select>
+      </div>`;
+    const short = { mp4: 'MP4', mkv: 'MKV' };
+    $('#dl-opts').innerHTML = choice.kind === 'audio'
+      ? select('dl-format', 'Format', Object.entries(AUDIO_FORMATS).map(([v, l]) => [v, l.replace(' (bezstratny)', '')]), choice.format)
+        + (LOSSY.includes(choice.format) ? select('dl-bitrate', 'Bitrate', BITRATES.map((b) => [b, `${b} kb/s`]), choice.bitrate) : '')
+      : select('dl-quality', 'Jakość', info.heights.map((h) => [h, `${h}p`]), choice.height)
+        + select('dl-container', 'Format', Object.entries(short), choice.container);
+    $('#dl-ext').textContent = `.${ext()}`;
+    updateSize();
+  }
+
+  /* fragment: suwak z dwoma uchwytami ↔ pola Od/Do ↔ podgląd */
+  function syncRange(moved) {
+    if (!sel) return;
+    const range = $('#dl-range');
+    const [rf, rt] = [$('#dl-rfrom'), $('#dl-rto')];
+    rf.value = sel.from;
+    rt.value = sel.to;
+    range.style.setProperty('--from', sel.from / sel.max);
+    range.style.setProperty('--to', sel.to / sel.max);
+    // Uchwyty na jednym torze: gdy „od” dojdzie do końca, musi leżeć na wierzchu, żeby dało się go złapać.
+    rf.style.zIndex = sel.from > sel.max * 0.9 ? 2 : '';
+    rf.setAttribute('aria-valuetext', formatTime(sel.from));
+    rt.setAttribute('aria-valuetext', formatTime(sel.to));
+    if (moved !== 'fields') {
+      $('#dl-from').value = sel.from > 0 ? formatTime(sel.from) : '';
+      $('#dl-to').value = sel.to < sel.max ? formatTime(sel.to) : '';
+    }
+    updateSize();
+  }
+
+  function onRange(e) {
+    const which = e.target.id === 'dl-rfrom' ? 'from' : 'to';
+    const v = Number(e.target.value);
+    if (which === 'from') sel.from = Math.min(v, sel.to - 1);
+    else sel.to = Math.max(v, sel.from + 1);
+    syncRange();
+    preview?.seek(sel[which], which, e.type === 'change');
+  }
+
+  // Wpisany czas: poprawny od razu przesuwa suwak, błędny zgłaszamy po wyjściu z pola.
+  function onField(e, final) {
+    const which = e.target.id === 'dl-from' ? 'from' : 'to';
+    const raw = e.target.value.trim();
+    const v = toSeconds(raw);
+    const trimErr = $('#dl-trim-err');
+    if (Number.isNaN(v)) return final && showError(trimErr, 'Wpisz czas jak 1:05 albo 1:02:03.');
+    if (!sel) return showError(trimErr, '');
+    const val = v ?? (which === 'from' ? 0 : sel.max);
+    if (val > sel.max) return final && showError(trimErr, `Materiał trwa ${formatTime(sel.max)}.`);
+    if (which === 'from' ? val >= sel.to : val <= sel.from) return final && showError(trimErr, '„Od” musi być wcześniej niż „Do”.');
+    showError(trimErr, '');
+    sel[which] = val;
+    syncRange('fields');
+    preview?.seek(val, which, final);
+  }
+
+  /* podgląd: odtwarzacz (serwer robi kopię 360p) albo dwie stopklatki */
+  let preview = null;
+
+  function renderPreview() {
+    const box = $('#dl-preview-box');
+    const p = info.preview;
+    const src = (path) => `${base()}/preview/${p.id}/${path}`;
+    preview = null;
+    if (!sel || !p) return (box.innerHTML = '');
+
+    const frames = () => {
+      if (!p.frames) return (box.innerHTML = '');
+      box.innerHTML = `
+        <div class="ht-pair">
+          ${['from', 'to'].map((w) => `
+            <div class="ht-field-group">
+              <div class="ht-preview"><img id="dl-frame-${w}" alt="" src="${src(`frame?t=${sel[w] === sel.max ? Math.max(0, sel[w] - 1) : sel[w]}`)}"></div>
+              <span class="ht-caption" id="dl-frame-${w}-t">${w === 'from' ? 'Od' : 'Do'} ${formatTime(sel[w])}</span>
+            </div>`).join('')}
+        </div>`;
+      preview = {
+        // Klatka dopiero po puszczeniu uchwytu: każda to ok. 1–2 s pracy komputera.
+        seek(t, which, final) {
+          $(`#dl-frame-${which}-t`).textContent = `${which === 'from' ? 'Od' : 'Do'} ${formatTime(t)}`;
+          if (final) $(`#dl-frame-${which}`).src = src(`frame?t=${which === 'to' && t === sel.max ? Math.max(0, t - 1) : t}`);
+        },
+      };
+    };
+
+    if (!p.video) return frames();
+    box.innerHTML = `
+      <div class="ht-field-group">
+        <div class="ht-preview"><video id="dl-video" playsinline preload="metadata" poster="${esc(info.thumbnail ?? '')}" src="${src('video')}"></video></div>
+        <button type="button" class="ht-btn ht-btn--secondary" data-dl="play">${icon('odtworz', 'sm')}Odtwórz fragment</button>
+      </div>`;
+    const video = $('#dl-video');
+    const btn = el.querySelector('[data-dl="play"]');
+    const label = (playing) => (btn.innerHTML = `${icon(playing ? 'pauza' : 'odtworz', 'sm')}${playing ? 'Zatrzymaj' : 'Odtwórz fragment'}`);
+    video.onplay = () => label(true);
+    video.onpause = () => label(false);
+    video.ontimeupdate = () => video.currentTime >= sel.to && video.pause();
+    video.onerror = frames; // podgląd się nie udał: stopklatki
+    preview = {
+      seek(t) {
+        video.pause();
+        if (video.readyState >= 1) video.currentTime = t;
+      },
+      toggle() {
+        if (!video.paused) return video.pause();
+        if (video.currentTime < sel.from || video.currentTime >= sel.to - 0.2) video.currentTime = sel.from;
+        video.play().catch(() => {});
+      },
+    };
+  }
+
+  /* rozmiar: szacunek z danych serwisu, proporcjonalnie do fragmentu */
+  function updateSize() {
+    const box = $('#dl-size');
+    if (!box || !choice) return;
+    const d = info.duration;
+    const part = sel ? (sel.to - sel.from) / sel.max : 1;
+    let bytes = null;
+    if (d && choice.kind === 'audio') {
+      const kbps = { mp3: choice.bitrate, m4a: choice.bitrate, flac: 900, wav: 1411 }[choice.format];
+      bytes = kbps * 125 * d; // kb/s → bajty
+    } else if (d) {
+      const v = info.video.find((x) => x.height === choice.height)?.size;
+      if (v != null) bytes = v + (choice.kind === 'video' ? info.audioSize ?? 0 : 0);
+    }
+    box.textContent = bytes ? `Rozmiar: ok. ${formatSize(bytes * part)}` : 'Rozmiar: nieznany';
   }
 
   /* pobieranie */
   async function download() {
-    const from = $('#dl-from').value.trim();
-    const to = $('#dl-to').value.trim();
-    const [a, b] = [toSeconds(from), toSeconds(to)];
     const trimErr = $('#dl-trim-err');
+    const [a, b] = sel
+      ? [sel.from > 0 ? sel.from : null, sel.to < sel.max ? sel.to : null]
+      : [toSeconds($('#dl-from').value), toSeconds($('#dl-to').value)];
     if (Number.isNaN(a) || Number.isNaN(b)) return showError(trimErr, 'Wpisz czas jak 1:05 albo 1:02:03.');
     if (a !== null && b !== null && a >= b) return showError(trimErr, '„Od” musi być wcześniej niż „Do”.');
-    if (info.duration && (a ?? 0) >= info.duration) return showError(trimErr, `Materiał trwa ${formatTime(info.duration)}.`);
-    if (info.duration && b !== null && b > info.duration) return showError(trimErr, `Materiał trwa ${formatTime(info.duration)}.`);
     showError(trimErr, '');
 
-    const q = $('#dl-quality').value;
-    const body = type === 'video'
-      ? { url: info.url, type, format: 'mp4', height: Number(q) }
-      : { url: info.url, type, format: q };
-    Object.assign(body, { from, to });
-
+    const c = choice;
+    const body = {
+      url: info.url, kind: c.kind, height: c.height, container: c.container, format: c.format, bitrate: c.bitrate,
+      from: a !== null ? formatTime(a) : '', to: b !== null ? formatTime(b) : '', name: $('#dl-name').value,
+    };
     const btn = el.querySelector('[data-dl="download"]');
     btn.disabled = true;
     try {
       const { id } = await api('/jobs', body);
-      const label = type === 'video' ? `Wideo ${q}p` : `Audio ${q.toUpperCase()}`;
+      const label = c.kind === 'audio'
+        ? `Audio ${c.format.toUpperCase()}${LOSSY.includes(c.format) ? ` ${c.bitrate} kb/s` : ''}`
+        : `${c.kind === 'mute' ? 'Bez dźwięku' : 'Wideo'} ${c.height}p ${c.container.toUpperCase()}`;
       const range = a !== null || b !== null ? `${formatTime(a ?? 0)}–${b !== null ? formatTime(b) : 'koniec'}` : '';
-      const job = { id, status: 'running', url: info.url, title: info.title, thumbnail: info.thumbnail, label, range };
+      const job = { id, status: 'running', url: info.url, title: $('#dl-name').value.trim() || info.title, thumbnail: info.thumbnail, label, range, kind: c.kind, container: c.container };
       save(KEY.job, job);
       renderJob(job, { status: 'running', progress: 0, stage: 'download' });
       jobBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -284,20 +536,20 @@ function main(el) {
     }
   }
 
-  // Etapy: komputer pobiera → komputer łączy → telefon ściąga plik do pamięci → „Zapisz”.
+  // Etapy: komputer pobiera → komputer obrabia → telefon ściąga plik do pamięci → „Zapisz”.
   function renderJob(job, server) {
     if (!el.isConnected) return;
     jobBox.hidden = false;
     const local = transfer?.id === job.id ? transfer : null;
     const [value, meta] = server.status === 'error' ? ['Błąd', job.title]
       : server.status === 'running' && server.stage === 'processing' ? ['Łączę pliki', 'Na komputerze']
-      : server.status === 'running' && server.stage === 'convert' ? [`${server.progress}%`, 'Konwertuję do H.264']
+      : server.status === 'running' && server.stage === 'convert' ? [`${server.progress}%`, 'Konwertuję na komputerze']
       : server.status === 'running' ? [`${server.progress}%`, 'Pobieram na komputer']
       : local?.file ? ['Gotowe', job.title]
       : local?.error ? ['Błąd', job.title]
       : [`${local?.progress ?? 0}%`, 'Przesyłam na telefon'];
     const live = server.status === 'running' || (server.status === 'done' && !local?.file && !local?.error);
-    const isAudio = /^Audio/.test(job.label);
+    const toPhotos = job.kind !== 'audio' && job.container !== 'mkv';
     jobBox.innerHTML = `
       <div class="ht-card-sm">
         <span class="ht-card-sm__top">${icon('pobieranie', 'md')}${live ? '<span class="ht-dot ht-dot--live" role="img" aria-label="Pobieranie trwa"></span>' : ''}</span>
@@ -310,7 +562,7 @@ function main(el) {
           : '<button type="button" class="ht-btn ht-btn--secondary" data-dl="refetch">Spróbuj ponownie</button>'}` : ''}
       ${local?.file ? `
         <button type="button" class="ht-btn ht-btn--primary" data-dl="save">${icon('pobieranie', 'sm')}Zapisz</button>
-        ${IOS ? `<span class="ht-caption">W oknie Udostępnij wybierz „${isAudio ? 'Zachowaj w Plikach' : 'Zachowaj wideo'}”${isAudio ? '' : ', żeby trafiło do Zdjęć'}.</span>` : ''}` : ''}`;
+        ${IOS ? `<span class="ht-caption">W oknie Udostępnij wybierz „${toPhotos ? 'Zachowaj wideo' : 'Zachowaj w Plikach'}”${toPhotos ? ', żeby trafiło do Zdjęć' : ''}.</span>` : ''}` : ''}`;
     if (local?.file && !local.shown) {
       local.shown = true; // raz: pokaż „Zapisz”, który mógł zostać pod paskiem
       jobBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -359,6 +611,32 @@ function main(el) {
     if (btn) btn.disabled = false;
   }
 
+  function saveFile() {
+    // Musi ruszyć od razu w tym dotknięciu: Safari pozwala otworzyć Udostępnij tylko ok. 5 s po nim.
+    const { file } = transfer;
+    if (IOS) {
+      // MKV i inne nietypowe pliki iPhone udostępnia tylko jako „zwykły plik”.
+      const shareable = [file, new File([file], file.name, { type: 'application/octet-stream' })].find((f) => navigator.canShare?.({ files: [f] }));
+      if (shareable) {
+        if (transfer.sharing) return; // drugie dotknięcie przy otwartym oknie Udostępnij
+        transfer.sharing = true;
+        navigator.share({ files: [shareable] })
+          .then(finish, (ex) => {
+            if (ex.name !== 'AbortError') jobBox.insertAdjacentHTML('beforeend', `<span class="ht-field-error" role="alert">Nie udało się zapisać: ${esc(ex.message)}</span>`);
+          })
+          .finally(() => transfer && (transfer.sharing = false));
+        return;
+      }
+    }
+    // Android i komputer: zwykłe pobranie pliku z pamięci.
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    finish();
+  }
+
   /* historia */
   function renderHistory() {
     const box = $('#dl-history');
@@ -382,15 +660,38 @@ function main(el) {
 
   /* zdarzenia */
   urlField.oninput = () => ($('#dl-check').className = 'ht-btn ht-btn--primary'); // nowy link: znów akcja główna
+  // Wklejenie przytrzymaniem pola (menu iPhone'a) od razu sprawdza link.
+  urlField.onpaste = () => setTimeout(() => urlField.value.trim() && check());
   el.onsubmit = (e) => {
     e.preventDefault();
     check();
   };
+  el.oninput = (e) => {
+    if (e.target.type === 'range') onRange(e);
+    if (e.target.id === 'dl-from' || e.target.id === 'dl-to') onField(e, false);
+  };
+  el.onchange = (e) => {
+    const t = e.target;
+    if (t.type === 'range') onRange(e);
+    if (t.id === 'dl-from' || t.id === 'dl-to') onField(e, true);
+    if (t.id === 'dl-quality') choice.height = Number(t.value);
+    if (t.id === 'dl-container') choice.container = t.value;
+    if (t.id === 'dl-bitrate') choice.bitrate = Number(t.value);
+    if (t.id === 'dl-format') {
+      choice.format = t.value;
+      renderOptions(); // bitrate tylko dla MP3/M4A
+    }
+    if (['dl-quality', 'dl-container', 'dl-bitrate'].includes(t.id)) {
+      $('#dl-ext').textContent = `.${ext()}`;
+      updateSize();
+    }
+  };
   el.onclick = async (e) => {
-    const t = e.target.closest('[data-dl], [data-type], [data-history]');
+    const t = e.target.closest('[data-dl], [data-kind], [data-history]');
     if (!t) return;
-    if (t.dataset.type) {
-      type = t.dataset.type;
+    if (t.dataset.kind) {
+      choice.kind = t.dataset.kind;
+      el.querySelectorAll('[data-kind]').forEach((b) => b.setAttribute('aria-selected', b === t));
       return renderOptions();
     }
     if (t.dataset.history) {
@@ -400,29 +701,9 @@ function main(el) {
       return check();
     }
     const action = t.dataset.dl;
-    if (action === 'settings') settings(el);
     if (action === 'download') download();
-    if (action === 'save') {
-      // Musi ruszyć od razu w tym dotknięciu: Safari pozwala otworzyć Udostępnij tylko ok. 5 s po nim.
-      const { file } = transfer;
-      if (IOS && navigator.canShare?.({ files: [file] })) {
-        if (transfer.sharing) return; // drugie dotknięcie przy otwartym oknie Udostępnij
-        transfer.sharing = true;
-        navigator.share({ files: [file] })
-          .then(finish, (ex) => {
-            if (ex.name !== 'AbortError') jobBox.insertAdjacentHTML('beforeend', `<span class="ht-field-error" role="alert">Nie udało się zapisać: ${esc(ex.message)}</span>`);
-          })
-          .finally(() => transfer && (transfer.sharing = false));
-      } else {
-        // Android i komputer: zwykłe pobranie pliku z pamięci.
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(file);
-        a.download = file.name;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-        finish();
-      }
-    }
+    if (action === 'play') preview?.toggle?.();
+    if (action === 'save') saveFile();
     if (action === 'refetch') {
       const job = load(KEY.job, null);
       transfer = null;
@@ -434,10 +715,12 @@ function main(el) {
     }
     if (action === 'paste') {
       try {
-        urlField.value = (await navigator.clipboard.readText()).trim();
+        const url = await readClipboard();
+        if (!url) throw new Error('pusto');
+        urlField.value = url;
         check();
       } catch {
-        showError($('#dl-err'), 'Brak dostępu do schowka. Wklej link ręcznie.');
+        showError($('#dl-err'), 'iPhone nie dał dostępu do schowka. Dotknij dymka „Wklej” nad przyciskiem albo przytrzymaj pole i wybierz Wklej.');
         urlField.focus();
       }
     }

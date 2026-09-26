@@ -298,11 +298,15 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 
 **Chip** `.ht-chip` - 30 px, promień 10, 12.5/600 w `--ht-muted`, bez tła; najazd `--ht-hover`, `.ht-hit`.
 
-**Przełącznik segmentowy** `.ht-segmented` - tor na `--ht-recess`, padding 4, promień 16. Segment 40 px, promień 12, 13.5 px. Aktywny: `--ht-press`, `--ht-text`, 600. Nieaktywny: `--ht-muted`, 500. `.ht-hit` na segmentach.
+**Przełącznik segmentowy** `.ht-segmented` - 2 albo 3 równe segmenty (np. Wideo / Bez dźwięku / Audio); tor na `--ht-recess`, padding 4, promień 16. Segment 40 px, promień 12, 13.5 px. Aktywny: `--ht-press`, `--ht-text`, 600. Nieaktywny: `--ht-muted`, 500. `.ht-hit` na segmentach.
 
 **Kropka stanu** `.ht-dot` - 7 × 7 px, okrągła, akcent. Dwa znaczenia i nic poza nimi:
 - statyczna: coś nowego czeka (jest aktualizacja),
 - pulsująca `.ht-dot--live`: proces trwa teraz (np. działający stoper).
+
+**Suwak zakresu** `.ht-range` - wybór odcinka (np. fragment od-do): dwa natywne `input[type=range]` na jednym torze. Tor `--ht-recess` (wgłębienie, jak tor przełącznika) o grubości `--ht-range-track`, wybrany odcinek `--ht-press`, uchwyty `--ht-range-thumb` w `--ht-text`, pole dotyku 44 px. Bez akcentu: to nie jest żadna z jego ośmiu ról. Pozycje odcinka przez zmienne `--from` i `--to` (0…1). Zawsze z polami tekstowymi obok, żeby dało się wpisać wartość.
+
+**Podgląd** `.ht-preview` - odtwarzacz albo stopklatka w ramce 16:9 na `--ht-recess`, promień `--ht-r-lg`, obraz dopasowany bez przycinania.
 
 **Lista tekstowa** `.ht-list` - pionowa lista bez punktorów, odstęp `--ht-gap`. Każdy element: krótka etykieta `.ht-section` (np. „Nowe”, „Poprawka”) nad opisem `.ht-lead`. Dla treści do czytania (historia zmian), nie do dotykania; lista klikalna to karty.
 

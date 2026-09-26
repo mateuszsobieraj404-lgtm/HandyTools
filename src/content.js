@@ -1,5 +1,6 @@
 import * as pobieranie from './tools/pobieranie.js';
 import { changelogHtml, hasNew, markSeen } from './changelog.js';
+import { icon } from './icons.js';
 
 // Zawartość z makiety. Wszystko tu jest POGLĄDOWE (Dokumentacja_produktu.md, sekcja 0)
 // i do podmiany, gdy zapadnie decyzja o funkcjach.
@@ -7,8 +8,9 @@ import { changelogHtml, hasNew, markSeen } from './changelog.js';
 // Nowe narzędzie = nowy wpis. Kontrakt: Dokumentacja_produktu.md, sekcja 3.
 // Opcjonalne `render(el)` rysuje treść ekranu narzędzia; bez niego ekran pokazuje stan pusty.
 // Opcjonalne `state()` zwraca { value, live? } dla karty stanu w menu albo null.
+// Opcjonalne `settings(el)` rysuje ekran Ustawienia → <narzędzie> (`settingsCaption`: podpis na liście).
 export const tools = [
-  { id: 'pobieranie', name: 'Pobieranie', icon: 'pobieranie', ...pobieranie },
+  { id: 'pobieranie', name: 'Pobieraczek', icon: 'pobieranie', settingsCaption: 'Serwer, formaty, jakość', ...pobieranie },
   { id: 'kalkulator', name: 'Kalkulator', icon: 'kalkulator' },
   { id: 'konwerter', name: 'Konwerter', icon: 'konwerter' },
   { id: 'notatki', name: 'Notatki', icon: 'notatki' },
@@ -30,7 +32,7 @@ export const shortcuts = [
 
 // Ekrany spoza narzędzi (adres #/<id>). Opcjonalne: `render()` → HTML treści, `onOpen()` przy wejściu.
 export const pages = {
-  ustawienia: { title: 'Ustawienia', icon: 'ustawienia' },
+  ustawienia: { title: 'Ustawienia', icon: 'ustawienia', render: settingsList },
   aktualizacje: { title: 'Aktualizacje', icon: 'aktualizacje', render: changelogHtml, onOpen: markSeen },
   wsparcie: { title: 'Wsparcie', icon: 'wsparcie' },
   konto: { title: 'Konto', icon: 'konto' },
@@ -46,3 +48,17 @@ export const bar = [
   { label: 'Własna', icon: 'wlasna', sheet: 'wlasna', empty: true },
   { label: 'Skróty', icon: 'skroty', sheet: 'skroty', primary: true },
 ];
+
+// Ustawienia: lista narzędzi, które mają własne ustawienia (adres #/ustawienia/<id>).
+function settingsList() {
+  return `
+  <section class="ht-section-block" aria-labelledby="h-settings">
+    <h2 class="ht-section" id="h-settings">Narzędzia</h2>
+    ${tools.filter((t) => t.settings).map((t) => `
+      <a class="ht-card" href="#/ustawienia/${t.id}">
+        <span class="ht-well">${icon(t.icon, 'md')}</span>
+        <span class="ht-card__text"><span class="ht-card-title">${t.name}</span><span class="ht-caption">${t.settingsCaption ?? ''}</span></span>
+        ${icon('dalej', 'sm', 'ht-card__chevron')}
+      </a>`).join('')}
+  </section>`;
+}

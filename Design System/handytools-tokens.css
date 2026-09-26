@@ -82,6 +82,8 @@
   --ht-bar-h:     82px;  /* wysokość paska dolnego                            */
   --ht-hit:       44px;  /* minimalne pole dotyku                             */
   --ht-dot:        7px;
+  --ht-range-thumb: 26px; /* uchwyt suwaka zakresu                          */
+  --ht-range-track:  6px; /* tor suwaka zakresu                              */
 
   /* --- ikony: cztery rozmiary, dwie grubości ------------------------------- */
   --ht-i-tile:   30px;  /* kafel                                              */
@@ -488,7 +490,8 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   background: var(--ht-recess);
   border: 1px solid var(--ht-line);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;       /* 2 albo 3 segmenty, zawsze równe */
+  grid-auto-columns: minmax(0, 1fr);
   gap: 4px;
 }
 .ht-segmented button {
@@ -563,6 +566,78 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 }
 .ht-dot--live { animation: ht-pulse var(--ht-t-pulse) ease-in-out infinite; }
 .ht-bar__icon .ht-dot { position: absolute; top: 3px; right: 4px; }
+
+/* --- suwak zakresu: dwa natywne input[type=range] na jednym torze (np. fragment od-do) ---
+   Tor to wgłębienie (--ht-recess), wybrany odcinek o stopień jaśniejszy (--ht-press), uchwyty w --ht-text.
+   Pozycje odcinka: zmienne --from i --to (0…1) ustawiane w kodzie. Pole dotyku 44 px wysokości. */
+.ht-range { position: relative; height: var(--ht-hit); }
+.ht-range__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--ht-range-track);
+  transform: translateY(-50%);
+  border-radius: var(--ht-range-track);
+  background: var(--ht-recess);
+  box-shadow: inset 0 0 0 1px var(--ht-line);
+}
+.ht-range__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* środek uchwytu przesuwa się od thumb/2 do 100% - thumb/2 */
+  left: calc(var(--from, 0) * (100% - var(--ht-range-thumb)) + var(--ht-range-thumb) / 2);
+  right: calc((1 - var(--to, 1)) * (100% - var(--ht-range-thumb)) + var(--ht-range-thumb) / 2);
+  border-radius: inherit;
+  background: var(--ht-press);
+}
+.ht-range input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none;        /* tor przepuszcza dotyk; łapią tylko uchwyty */
+}
+.ht-range input::-webkit-slider-runnable-track { background: none; }
+.ht-range input::-moz-range-track { background: none; }
+.ht-range input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: var(--ht-range-thumb);
+  height: var(--ht-range-thumb);
+  border-radius: 50%;
+  background: var(--ht-text);
+  border: 0;
+  box-shadow: 0 0 0 1px var(--ht-line-strong);
+  cursor: grab;
+}
+.ht-range input::-moz-range-thumb {
+  pointer-events: auto;
+  width: var(--ht-range-thumb);
+  height: var(--ht-range-thumb);
+  border-radius: 50%;
+  background: var(--ht-text);
+  border: 0;
+  cursor: grab;
+}
+.ht-range input:focus-visible { outline: 0; }
+.ht-range input:focus-visible::-webkit-slider-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
+.ht-range input:focus-visible::-moz-range-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
+
+/* --- podgląd materiału: odtwarzacz albo stopklatka 16:9 na wgłębieniu -------- */
+.ht-preview {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--ht-r-lg);
+  overflow: hidden;
+  background: var(--ht-recess);
+  box-shadow: inset 0 0 0 1px var(--ht-line);
+}
+.ht-preview > video, .ht-preview > img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
 /* --- lista tekstowa (np. historia zmian): etykieta .ht-section nad opisem .ht-lead --- */
 .ht-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--ht-gap); }

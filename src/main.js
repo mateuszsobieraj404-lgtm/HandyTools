@@ -88,9 +88,9 @@ const menuScreen = () => `
   </section>`;
 
 // Szkielet ekranu narzędzia i podstrony: nagłówek z powrotem i tytułem, treść, pasek.
-const subScreen = (title, content) => `
+const subScreen = (title, content, back = '#/') => `
   <header class="ht-header ht-header--tool ht-in" style="--i:0">
-    <a class="ht-icon-btn ht-hit" href="#/" aria-label="Wróć do menu">${icon('wstecz', 'sm')}</a>
+    <a class="ht-icon-btn ht-hit" href="${back}" aria-label="${back === '#/' ? 'Wróć do menu' : 'Wróć'}">${icon('wstecz', 'sm')}</a>
     <h1 class="ht-title">${title}</h1>
   </header>
   <div class="ht-in" style="--i:1" id="content">${content}</div>`;
@@ -160,11 +160,13 @@ function route() {
 
   const [, a, b] = location.hash.split('/'); // '#/narzedzie/kalkulator' → ['#', 'narzedzie', 'kalkulator']
   const tool = a === 'narzedzie' && tools.find((t) => t.id === b);
+  const setTool = a === 'ustawienia' && b && tools.find((t) => t.id === b && t.settings); // #/ustawienia/<narzędzie>
   const page = pages[a];
   let body;
 
   const block = (html) => `<div class="ht-section-block">${html}</div>`;
   if (tool) body = subScreen(tool.name, tool.render ? '' : block(empty(tool.icon, 'W przygotowaniu', 'Ekran jest gotowy, funkcja dojdzie później.')));
+  else if (setTool) body = subScreen(setTool.name, '', '#/ustawienia');
   else if (page) {
     page.onOpen?.();
     body = subScreen(page.title, page.render ? page.render() : block(empty(page.icon, 'W przygotowaniu', 'Ten ekran dostanie treść, gdy zapadnie decyzja o funkcji.')));
@@ -174,6 +176,7 @@ function route() {
   app.innerHTML = `<div class="ht-screen"><div class="ht-glow"></div>${body}<span class="ht-spacer"></span>${barHtml(page && a)}</div>`;
 
   if (tool?.render) tool.render(document.getElementById('content'));
+  if (setTool) setTool.settings(document.getElementById('content'));
   if (!tool && !page) {
     showAll = false;
     renderGrid(true);

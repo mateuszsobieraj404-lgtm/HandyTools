@@ -1,6 +1,6 @@
 # Pobieranie: wideo i audio z linku
 
-Status: resolved (pierwsza wersja zbudowana; czeka konfiguracja tunelu)
+Status: resolved (0.4.0 „Pobieraczek” zbudowany)
 
 ## Cel
 
@@ -57,3 +57,18 @@ Zapis na telefonie jak w cobalt.tools: aplikacja ściąga plik do pamięci (z po
 ## Później
 
 Udostępnij → HandyTools (Android), playlisty, napisy, treści po zalogowaniu (ciasteczka).
+
+## Wersja 0.4.0: Pobieraczek (26.09.2026)
+
+Ustalone w rozmowie (grilling), zbudowane:
+
+- Nazwa w aplikacji: **Pobieraczek** (id `pobieranie` i klucze pamięci bez zmian).
+- **Wklej:** `navigator.clipboard.read()` z typami `text/uri-list` i `text/plain` (aplikacje na iPhonie kopiują link jako URL, nie tekst); wklejenie w pole (`paste`) od razu sprawdza link; z tekstu wyciągany pierwszy `https://…`.
+- **Rodzaje:** Wideo / Bez dźwięku / Audio.
+- **Formaty:** wideo MP4 (H.264, Zdjęcia) i MKV (Pliki); audio MP3, M4A, FLAC, WAV; bitrate 320/256/192/128 kb/s dla MP3 i M4A.
+- **Domyślne** w Ustawienia → Pobieraczek (serwer, format i jakość wideo, format i bitrate audio); w panelu zmieniane per pobranie. Jakość: preferowana, inaczej najbliższa niższa, inaczej najbliższa wyższa (`pickHeight`, test w `src/tools/pobieranie.test.js`).
+- **Fragment:** suwak z dwoma uchwytami (`.ht-range`) + pola Od/Do.
+- **Podgląd:** odtwarzacz z kopii 360p robionej na serwerze na żądanie (`/preview/:id/video`, Range), do 30 min materiału; inaczej lub przy błędzie stopklatki (`/preview/:id/frame?t=`).
+- **Nazwa pliku:** pole z tytułem; serwer usuwa znaki niedozwolone, rozszerzenie dopisuje sam.
+- **Rozmiar:** szacunek z danych serwisu (`/info`: `video[{height,size}]`, `audioSize`), proporcjonalnie do fragmentu; audio z bitrate.
+- Serwer: jeden przebieg ffmpeg (`finalize`) robi plik końcowy: format, nazwa, H.264 dla MP4, `-an` dla „bez dźwięku”.

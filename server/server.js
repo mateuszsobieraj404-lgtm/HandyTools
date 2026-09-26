@@ -1,12 +1,12 @@
-// Serwer pobierania dla narzędzia „Pobieranie”. Działa na komputerze w domu,
+// Serwer pobierania dla narzędzia „Pobieraczek”. Działa na komputerze w domu,
 // telefon łączy się przez tunel HTTPS (Tailscale Funnel). Spec: .scratch/pobieranie/spec.md
 //
-// Uruchom: npm run server   (hasło w server/.env: HT_PASSWORD=...)
+// Uruchom: start-serwer.bat albo npm run server   (hasło w server/.env: HT_PASSWORD=...)
 import http from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { appendFile, mkdir, readdir, rename, rm, stat } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { toSeconds } from '../src/time.js';
@@ -20,8 +20,14 @@ const PYTHON = process.env.HT_PYTHON || 'python';
 const X_COOKIES = process.env.HT_X_COOKIES_BROWSER || 'firefox';
 const cookieArgs = (url) => (/^(www\.|mobile\.)?(x|twitter)\.com$/i.test(new URL(url).hostname) ? ['--cookies-from-browser', X_COOKIES] : []);
 const TMP = path.join(os.tmpdir(), 'handytools');
-const JOB_TTL = 60 * 60 * 1000; // plik czeka na odbiór najwyżej godzinę
+const TTL = 60 * 60 * 1000; // plik i podgląd czekają najwyżej godzinę
+const PREVIEW_MAX = 30 * 60; // odtwarzacz podglądu do 30 min materiału, dłuższe: same stopklatki
 const LOG = path.join(import.meta.dirname, 'server.log'); // błędy do diagnozy (poza repo)
+
+const CONTAINERS = ['mp4', 'mkv'];
+const AUDIO = ['mp3', 'm4a', 'flac', 'wav'];
+const BITRATES = [128, 192, 256, 320];
+const MIME = { mp4: 'video/mp4', mkv: 'video/x-matroska', mp3: 'audio/mpeg', m4a: 'audio/mp4', flac: 'audio/flac', wav: 'audio/wav' };
 
 if (!PASSWORD) {
   console.error('Brak hasła. Utwórz server/.env z linią HT_PASSWORD=twoje-haslo');
@@ -33,6 +39,7 @@ console.log('Aktualizuję yt-dlp…');
 spawnSync(PYTHON, ['-m', 'pip', 'install', '-U', '-q', 'yt-dlp'], { stdio: 'inherit' });
 
 const jobs = new Map(); // id → { status, progress, stage, error, file, dir, created }
+const previews = new Map(); // id → { video, frame, created }; źródła podglądu z /info
 
 /* --- pomocnicze ---------------------------------------------------------- */
 
@@ -61,6 +68,9 @@ function validUrl(s) {
   }
 }
 
+// Nazwa pliku od użytkownika: bez znaków, których Windows i telefony nie lubią.
+const safeName = (s) => String(s ?? '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 150);
+
 // Komunikaty yt-dlp → zdanie dla człowieka.
 function explain(stderr) {
   const line = stderr.split('\n').filter((l) => l.startsWith('ERROR:')).pop() || stderr.trim().split('\n').pop() || '';
@@ -76,7 +86,7 @@ function explain(stderr) {
 }
 
 const log = (...parts) => appendFile(LOG, `${new Date().toISOString()} ${parts.join(' ')}\n`).catch(() => {});
-const tail = (stderr) => stderr.trim().split('\n').slice(-3).join(' | ');
+const tail = (stderr) => String(stderr).trim().split('\n').slice(-3).join(' | ');
 
 // Facebook dokleja do tytułu liczniki: „130K views · 2.8K reactions | Właściwy tytuł”.
 const TITLE_FIX = ['--replace-in-metadata', 'title', String.raw`^[\d.,]+[KMB]? views · [\d.,]+[KMB]? reactions [|｜] `, ''];
@@ -98,7 +108,10 @@ function run(cmd, args, onLine) {
   });
 }
 
-/* --- endpointy ------------------------------------------------------------ */
+// Nagłówki, których serwis wymaga przy pobieraniu (User-Agent, Referer…), bez kompresji.
+const srcHeaders = (f) => Object.fromEntries(Object.entries(f.http_headers || {}).filter(([k]) => !/^accept-encoding$/i.test(k)));
+
+/* --- /info: tytuł, jakości, rozmiary, podgląd --------------------------------- */
 
 async function info(req, res) {
   const { url } = await readJson(req);
@@ -111,23 +124,60 @@ async function info(req, res) {
   }
 
   const j = JSON.parse(out);
-  const heights = [...new Set((j.formats || []).filter((f) => f.height && f.vcodec && f.vcodec !== 'none').map((f) => f.height))];
+  const formats = j.formats || [];
+  const duration = j.duration || null;
+  // Rozmiar strumienia: podany przez serwis albo szacowany z bitrate (kb/s → bajty: × 125).
+  const size = (f) => f?.filesize ?? f?.filesize_approx ?? (f?.tbr && duration ? Math.round(f.tbr * 125 * duration) : null);
+
+  const videos = formats.filter((f) => f.height && f.vcodec && f.vcodec !== 'none');
+  const heights = [...new Set(videos.map((f) => f.height))].sort((a, b) => b - a);
+  const video = heights.map((h) => {
+    const same = videos.filter((f) => f.height === h);
+    const pick = same.find((f) => /^(avc|h264)/.test(f.vcodec)) ?? same[0]; // serwer woli H.264, jak -S
+    return { height: h, size: size(pick) };
+  });
+  const bestAudio = formats.filter((f) => f.vcodec === 'none' && f.acodec && f.acodec !== 'none').sort((a, b) => (b.abr ?? 0) - (a.abr ?? 0))[0];
+
+  // Podgląd: odtwarzacz (plik 360p robiony na żądanie, patrz previewFile) dla materiałów
+  // do PREVIEW_MAX; stopklatki z dowolnego strumienia z obrazem, im mniejszego, tym szybciej.
+  const plain = (f) => /^https?$/.test(f.protocol ?? '');
+  const frameSrc = formats
+    .filter((f) => f.url && f.vcodec && f.vcodec !== 'none')
+    .sort((a, b) => (plain(b) - plain(a)) || ((a.height ?? 9999) - (b.height ?? 9999)))[0];
+  const hasVideo = formats.some((f) => f.vcodec && f.vcodec !== 'none');
+  const previewId = randomUUID();
+  previews.set(previewId, {
+    id: previewId,
+    url: j.webpage_url || url,
+    video: hasVideo && duration && duration <= PREVIEW_MAX,
+    file: null, // Promise<ścieżka | null>, tworzona przy pierwszym otwarciu odtwarzacza
+    frame: frameSrc && { url: frameSrc.url, headers: srcHeaders(frameSrc) },
+    created: Date.now(),
+  });
+
   send(res, 200, {
     url: j.webpage_url || url,
     title: j.title,
     thumbnail: j.thumbnail,
-    duration: j.duration || null,
+    duration,
     site: j.extractor_key,
-    heights: heights.sort((a, b) => b - a),
+    heights,
+    video, // [{ height, size }] rozmiar samego obrazu w danej jakości
+    audioSize: size(bestAudio), // rozmiar najlepszego dźwięku
+    preview: { id: previewId, video: Boolean(previews.get(previewId).video), frames: Boolean(frameSrc) },
   });
 }
 
+/* --- /jobs: pobranie + obróbka ------------------------------------------------ */
+
 async function createJob(req, res) {
-  const { url, type, height, format, from, to } = await readJson(req);
+  const { url, kind, height, container, format, bitrate, from, to, name } = await readJson(req);
   if (!validUrl(url)) return send(res, 400, { error: 'To nie wygląda na link.' });
-  if (!(type === 'video' && format === 'mp4') && !(type === 'audio' && ['mp3', 'm4a'].includes(format))) {
+  const isAudio = kind === 'audio';
+  if (!['video', 'mute', 'audio'].includes(kind) || (isAudio ? !AUDIO.includes(format) : !CONTAINERS.includes(container))) {
     return send(res, 400, { error: 'Nieznany format.' });
   }
+  const br = BITRATES.includes(bitrate) ? bitrate : 256;
   const start = toSeconds(from);
   const end = toSeconds(to);
   if (Number.isNaN(start) || Number.isNaN(end) || (start !== null && end !== null && start >= end)) {
@@ -136,17 +186,19 @@ async function createJob(req, res) {
 
   const id = randomUUID();
   const dir = path.join(TMP, id);
-  await mkdir(dir, { recursive: true });
+  const srcDir = path.join(dir, 'src');
+  await mkdir(srcDir, { recursive: true });
 
-  const args = ['--newline', '-o', path.join(dir, '%(title).150B.%(ext)s')];
-  if (type === 'video') {
+  const args = ['--newline', '-o', path.join(srcDir, '%(title).150B.%(ext)s')];
+  if (isAudio) {
+    args.push('-f', 'ba/b'); // obróbka do wybranego formatu i bitrate: ffmpeg w finalize()
+  } else {
     // -f ogranicza do wybranej wysokości (? = przepuść formaty bez znanej wysokości),
     // -S wybiera wśród nich: najwyższa rozdzielczość, potem H.264/AAC.
     const h = Number.isInteger(height) ? height : null;
-    if (h) args.push('-f', `bv*[height<=?${h}]+ba/b[height<=?${h}]/bv*+ba/b`);
-    args.push('-S', `${h ? `res:${h},` : ''}vcodec:h264,acodec:aac`, '--merge-output-format', 'mp4', '--remux-video', 'mp4');
-  } else {
-    args.push('-f', 'ba/b', '-x', '--audio-format', format, '--audio-quality', '0');
+    const cap = h ? `[height<=?${h}]` : '';
+    args.push('-f', kind === 'mute' ? `bv*${cap}/bv*` : `bv*${cap}+ba/b${cap}/bv*+ba/b`);
+    args.push('-S', `${h ? `res:${h},` : ''}vcodec:h264,acodec:aac`, '--merge-output-format', 'mkv');
   }
   if (start !== null || end !== null) {
     args.push('--download-sections', `*${start ?? 0}-${end ?? 'inf'}`, '--force-keyframes-at-cuts');
@@ -163,69 +215,154 @@ async function createJob(req, res) {
     if (pct) {
       job.stage = 'download';
       job.progress = Math.floor(Number(pct[1]));
-    } else if (/^\[(Merger|ExtractAudio|FixupM3u8|VideoConvertor|ModifyChapters)\]/.test(line)) {
+    } else if (/^\[(Merger|FixupM3u8|ModifyChapters)\]/.test(line)) {
       job.stage = 'processing';
     }
   });
 
-  const files = await readdir(dir).catch(() => []);
-  const file = files.find((f) => !f.endsWith('.part') && !f.endsWith('.ytdl'));
+  const file = (await readdir(srcDir).catch(() => [])).find((f) => !f.endsWith('.part') && !f.endsWith('.ytdl'));
   if (code !== 0 || !file) {
     log('JOB', url, tail(err));
     job.status = 'error';
     job.error = code !== 0 ? explain(err) : 'Pobieranie nie zwróciło pliku.';
     return;
   }
-  job.file = path.join(dir, file);
-  if (type === 'video' && !(await toPhoneCodec(job))) {
+  const fallback = path.parse(file).name;
+  const ok = await finalize(job, path.join(srcDir, file), { kind, container, format, bitrate: br, name: safeName(name) || fallback });
+  if (!ok) {
     job.status = 'error';
-    job.error = 'Nie udało się przekonwertować wideo. Szczegóły w server/server.log na komputerze.';
+    job.error = 'Nie udało się przygotować pliku. Szczegóły w server/server.log na komputerze.';
     return;
   }
+  rm(srcDir, { recursive: true, force: true });
   job.status = 'done';
   job.progress = 100;
 }
 
-// iPhone zapisze do Zdjęć tylko H.264 albo HEVC. Facebook i część serwisów daje wyłącznie
-// VP9/AV1, więc takie wideo przekodowujemy na komputerze (ffmpeg, libx264).
-async function toPhoneCodec(job) {
-  const probe = await run('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name:format=duration', '-of', 'json', job.file]);
-  const info = JSON.parse(probe.out || '{}');
-  const codec = info.streams?.[0]?.codec_name;
-  if (!codec || ['h264', 'hevc'].includes(codec)) return true;
+// Jeden przebieg ffmpeg robi plik końcowy: wybrany format, nazwa, a przy MP4 obraz w H.264,
+// bo tylko H.264/HEVC iPhone zapisze do Zdjęć (Facebook i inni dają często VP9/AV1).
+async function finalize(job, src, { kind, container, format, bitrate, name }) {
+  const probe = await run('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name:format=duration', '-of', 'json', src]);
+  const meta = JSON.parse(probe.out || '{}');
+  const codecOf = (type) => meta.streams?.find((s) => s.codec_type === type)?.codec_name;
+  const vcodec = codecOf('video');
+  const acodec = codecOf('audio');
+  const duration = Number(meta.format?.duration) || 0;
 
-  const duration = Number(info.format?.duration) || 0;
-  const out = path.join(path.dirname(job.file), `h264-${path.basename(job.file)}`);
-  job.stage = 'convert';
+  let ext;
+  let codecArgs;
+  let slow;
+  if (kind === 'audio') {
+    ext = format;
+    codecArgs = ['-map', '0:a:0', '-vn', ...{
+      mp3: ['-c:a', 'libmp3lame', '-b:a', `${bitrate}k`],
+      m4a: ['-c:a', 'aac', '-b:a', `${bitrate}k`],
+      flac: ['-c:a', 'flac'],
+      wav: ['-c:a', 'pcm_s16le'],
+    }[format]];
+    slow = true;
+  } else {
+    ext = container;
+    const recode = container === 'mp4' && !['h264', 'hevc'].includes(vcodec);
+    const audioArgs = kind === 'mute' || !acodec ? ['-an']
+      : recode || (container === 'mp4' && !['aac', 'mp3'].includes(acodec)) ? ['-map', '0:a:0', '-c:a', 'aac', '-b:a', '192k']
+      : ['-map', '0:a:0', '-c:a', 'copy'];
+    codecArgs = [
+      '-map', '0:v:0',
+      ...(recode ? ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p'] : ['-c:v', 'copy']),
+      ...audioArgs,
+      ...(container === 'mp4' ? ['-movflags', '+faststart'] : []),
+    ];
+    slow = recode;
+  }
+
+  const out = path.join(job.dir, `${name}.${ext}`);
+  job.stage = slow ? 'convert' : 'processing';
   job.progress = 0;
-  const { code, err } = await run('ffmpeg', [
-    '-y', '-v', 'error', '-nostats', '-progress', 'pipe:1', '-i', job.file,
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
-    '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out,
-  ], (line) => {
+  const { code, err } = await run('ffmpeg', ['-y', '-v', 'error', '-nostats', '-progress', 'pipe:1', '-i', src, ...codecArgs, out], (line) => {
     const us = line.match(/^out_time_us=(\d+)/); // mikrosekundy → procent czasu trwania
     if (us && duration) job.progress = Math.min(99, Math.floor(Number(us[1]) / 1e4 / duration));
   });
   if (code !== 0) {
-    log('CONVERT', job.file, codec, tail(err));
+    log('FINALIZE', src, kind, ext, vcodec, acodec, tail(err));
     return false;
   }
-  await rm(job.file);
-  await rename(out, job.file);
+  job.file = out;
   return true;
 }
 
 async function sendFile(res, job) {
   const name = path.basename(job.file);
   const { size } = await stat(job.file);
-  const type = { mp4: 'video/mp4', mp3: 'audio/mpeg', m4a: 'audio/mp4' }[path.extname(name).slice(1)] || 'application/octet-stream';
   res.writeHead(200, {
-    'Content-Type': type,
+    'Content-Type': MIME[path.extname(name).slice(1)] || 'application/octet-stream',
     'Content-Length': size,
     'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}`,
   });
   createReadStream(job.file).pipe(res);
 }
+
+/* --- podgląd ------------------------------------------------------------------- */
+
+// Odtwarzacz w aplikacji: mała kopia 360p (obraz + dźwięk, najlepiej H.264, żeby grał iPhone),
+// pobierana przy pierwszym otwarciu i trzymana do TTL. YouTube nie ma już plików z obrazem
+// i dźwiękiem razem, a jego adresy działają tylko z IP komputera, więc podgląd idzie przez serwer.
+function previewFile(p) {
+  p.file ??= (async () => {
+    const dir = path.join(TMP, `podglad-${p.id}`);
+    await mkdir(dir, { recursive: true });
+    const { code, err } = await ytdlp([
+      ...cookieArgs(p.url), '-f', 'b[height<=?480]/bv*[height<=?360]+ba/wv*+ba/w', '-S', 'vcodec:h264,acodec:aac',
+      '--merge-output-format', 'mp4', '-o', path.join(dir, 'podglad.%(ext)s'), '--', p.url,
+    ]);
+    const file = (await readdir(dir).catch(() => [])).find((f) => f.startsWith('podglad.') && !f.endsWith('.part'));
+    if (code !== 0 || !file) {
+      log('PREVIEW', p.url, tail(err));
+      return null;
+    }
+    return path.join(dir, file);
+  })();
+  return p.file;
+}
+
+// Plik z obsługą Range: odtwarzacz przewija, pobierając tylko potrzebny kawałek.
+async function sendRange(req, res, file) {
+  const { size } = await stat(file);
+  const type = MIME[path.extname(file).slice(1)] || 'video/mp4';
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (!m || (!m[1] && !m[2])) {
+    res.writeHead(200, { 'Content-Type': type, 'Content-Length': size, 'Accept-Ranges': 'bytes' });
+    return createReadStream(file).pipe(res);
+  }
+  const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2])); // „bytes=-500” = ostatnie 500 B
+  const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+  if (start >= size || start > end) {
+    res.writeHead(416, { 'Content-Range': `bytes */${size}` });
+    return res.end();
+  }
+  res.writeHead(206, { 'Content-Type': type, 'Content-Length': end - start + 1, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Accept-Ranges': 'bytes' });
+  createReadStream(file, { start, end }).pipe(res);
+}
+
+// Stopklatka w danej sekundzie (JPEG ok. 480 px szerokości), gdy odtwarzacz nie zadziała.
+function previewFrame(res, src, seconds) {
+  const headers = Object.entries(src.headers).map(([k, v]) => `${k}: ${v}\r\n`).join('');
+  const p = spawn('ffmpeg', [
+    '-v', 'error', '-ss', String(seconds), ...(headers ? ['-headers', headers] : []), '-i', src.url,
+    '-frames:v', '1', '-vf', 'scale=480:-2', '-q:v', '5', '-f', 'image2pipe', '-c:v', 'mjpeg', 'pipe:1',
+  ], { windowsHide: true });
+  const chunks = [];
+  const timer = setTimeout(() => p.kill(), 20_000);
+  p.stdout.on('data', (d) => chunks.push(d));
+  p.on('close', (code) => {
+    clearTimeout(timer);
+    if (code !== 0 || !chunks.length) return send(res, 502, { error: 'Nie udało się pobrać klatki.' });
+    res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'max-age=3600' });
+    res.end(Buffer.concat(chunks));
+  });
+}
+
+/* --- sprzątanie ---------------------------------------------------------------- */
 
 function dropJob(id) {
   const job = jobs.get(id);
@@ -235,35 +372,49 @@ function dropJob(id) {
 }
 
 setInterval(() => {
-  for (const [id, job] of jobs) if (Date.now() - job.created > JOB_TTL) dropJob(id);
+  for (const [id, job] of jobs) if (Date.now() - job.created > TTL) dropJob(id);
+  for (const [id, p] of previews) {
+    if (Date.now() - p.created < TTL) continue;
+    previews.delete(id);
+    rm(path.join(TMP, `podglad-${id}`), { recursive: true, force: true });
+  }
 }, 10 * 60 * 1000).unref();
 
-/* --- serwer --------------------------------------------------------------- */
+/* --- serwer ---------------------------------------------------------------------- */
 
 const server = http.createServer(async (req, res) => {
   // Hasło chroni dostęp, więc CORS może być otwarty (aplikacja: GitHub Pages i localhost).
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type');
+  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, range');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length'); // nazwa pliku i postęp w aplikacji
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length, Content-Range'); // nazwa pliku i postęp w aplikacji
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
 
-  const { pathname } = new URL(req.url, 'http://x');
+  const { pathname, searchParams } = new URL(req.url, 'http://x');
   const [, a, id, sub] = pathname.split('/'); // '/jobs/<id>/file' → ['', 'jobs', id, 'file']
 
   try {
     // Ktoś otworzył adres serwera w przeglądarce: powiedz, gdzie go wpisać.
     if (req.method === 'GET' && pathname === '/') {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return res.end('Serwer HandyTools działa.\n\nTo nie jest strona do otwierania. Wpisz ten adres w aplikacji HandyTools: Pobieranie → Adres serwera.');
+      return res.end('Serwer HandyTools działa.\n\nTo nie jest strona do otwierania. Wpisz ten adres w aplikacji HandyTools: Ustawienia → Pobieraczek → Adres serwera.');
     }
 
-    // Plik chroni losowy identyfikator zadania zamiast hasła (działa też jako zwykły link,
-    // np. „Otwórz w Safari”). Zostaje do odbioru do JOB_TTL, żeby telefon mógł ponowić przesyłanie.
+    // Plik i podgląd otwiera przeglądarka zwykłym linkiem (bez nagłówka z hasłem),
+    // więc chroni je losowy identyfikator. Wygasają po TTL.
     if (req.method === 'GET' && a === 'jobs' && sub === 'file') {
       const job = jobs.get(id);
       if (job?.status !== 'done') return send(res, 404, { error: 'Plik wygasł albo jeszcze się pobiera.' });
       return await sendFile(res, job);
+    }
+    if (req.method === 'GET' && a === 'preview') {
+      const p = previews.get(id);
+      if (sub === 'video' && p?.video) {
+        const file = await previewFile(p);
+        return file ? await sendRange(req, res, file) : send(res, 502, { error: 'Nie udało się przygotować podglądu.' });
+      }
+      if (sub === 'frame' && p?.frame) return previewFrame(res, p.frame, Math.max(0, Number(searchParams.get('t')) || 0));
+      return send(res, 404, { error: 'Podgląd wygasł. Sprawdź link jeszcze raz.' });
     }
 
     if (!authorized(req)) {
@@ -281,6 +432,7 @@ const server = http.createServer(async (req, res) => {
     }
     send(res, 404, { error: 'Nie ma takiego adresu.' });
   } catch (e) {
+    if (e.name === 'AbortError') return; // telefon przerwał podgląd (przewinięcie, wyjście)
     console.error(e);
     if (!res.headersSent) send(res, 500, { error: 'Błąd serwera. Szczegóły w oknie serwera na komputerze.' });
   }

@@ -3,6 +3,23 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.4.0',
+    date: '2026-09-26',
+    title: 'Pobieraczek',
+    items: [
+      ['Zmiana', 'Narzędzie „Pobieranie” nazywa się teraz „Pobieraczek”. Historia i ustawienia zostały.'],
+      ['Poprawka', 'Przycisk „Wklej” na iPhonie: linki skopiowane z aplikacji (YouTube, X, TikTok…) są teraz odczytywane. Link wklejony przytrzymaniem pola od razu się sprawdza.'],
+      ['Nowe', 'Fragment wybierasz suwakiem z dwoma uchwytami. Pola Od i Do do wpisania zostały i działają razem z suwakiem.'],
+      ['Nowe', 'Podgląd fragmentu: odtwarzacz przeskakuje w miejsce uchwytu, a „Odtwórz fragment” gra dokładnie wybrany kawałek. Gdy odtwarzacz nie zadziała albo materiał ma ponad 30 minut: stopklatki z początku i końca.'],
+      ['Nowe', 'Trzeci rodzaj pliku: „Bez dźwięku” (sam obraz).'],
+      ['Nowe', 'Formaty: wideo MP4 lub MKV, audio MP3, M4A, FLAC lub WAV. Bitrate audio 128–320 kb/s dla MP3 i M4A.'],
+      ['Nowe', 'Własna nazwa pobieranego pliku (domyślnie tytuł). Rozszerzenie dopisuje się samo.'],
+      ['Nowe', 'Szacowany rozmiar pliku, aktualizowany przy zmianie jakości, formatu, bitrate i fragmentu.'],
+      ['Nowe', 'Ustawienia → Pobieraczek: serwer, domyślny format i jakość wideo (gdy jej nie ma, najbliższa niższa), domyślny format i bitrate audio.'],
+      ['Zmiana', 'Ustawienia serwera przeniesione z narzędzia do zakładki Ustawienia.'],
+    ],
+  },
+  {
     version: '0.3.1',
     date: '2026-09-26',
     title: 'X po zalogowaniu',
