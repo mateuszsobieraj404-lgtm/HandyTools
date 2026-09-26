@@ -47,6 +47,7 @@
   --ht-scrim:       rgb(8 8 10 / 0.5);     /* --ht-bg na 50 %                 */
   --ht-scrim-solid: rgb(8 8 10 / 0.94);    /* bez przezroczystości systemowej */
   --ht-sheet:       rgb(30 30 35 / 0.9);   /* --ht-raised na 90 %             */
+  --ht-bar-bg:      rgb(23 23 27 / 0.86);  /* --ht-surface na 86 %: pasek dolny nad przewijaną treścią */
   --ht-shadow-sheet: 0 -24px 60px rgb(0 0 0 / 0.45);
 
   /* --- typografia ---------------------------------------------------------- */
@@ -54,7 +55,8 @@
 
   --ht-fs-title:   20px;    /* nagłówek ekranu, arkusza, panelu               */
   --ht-fs-value:   17px;    /* wartość na karcie małej                        */
-  --ht-fs-body:    15px;    /* tytuł karty, przycisk, tekst w polu            */
+  --ht-fs-body:    15px;    /* tytuł karty, przycisk                          */
+  --ht-fs-input:   16px;    /* tekst w polu: < 16 px iPhone przybliża stronę przy dotknięciu pola */
   --ht-fs-section: 13.5px;  /* nagłówek sekcji, zdanie wiodące, segment, przycisk tekstowy */
   --ht-fs-label:   12.5px;  /* etykieta, opis karty, podpis, chip, błąd       */
   --ht-fs-bar:     10.5px;  /* etykieta paska dolnego                         */
@@ -79,7 +81,7 @@
   --ht-well:      44px;  /* studzienka ikony w karcie                         */
   --ht-tile:      92px;  /* wysokość kafla i karty małej                      */
   --ht-action:   112px;  /* wysokość karty akcji                              */
-  --ht-bar-h:     82px;  /* wysokość paska dolnego                            */
+  --ht-bar-h:     58px;  /* wysokość paska dolnego (bez strefy gestów iPhone'a) */
   --ht-hit:       44px;  /* minimalne pole dotyku                             */
   --ht-dot:        7px;
   --ht-range-thumb: 26px; /* uchwyt suwaka zakresu                          */
@@ -95,9 +97,8 @@
   /* stroke-width w jednostkach viewBox 24: 1.5 dla ≥ 22 px, 1.75 dla 18 px    */
 
   /* --- odstępy ------------------------------------------------------------- */
-  --ht-gutter:      26px;  /* margines ekranu i arkusza                       */
-  --ht-gutter-bar:  16px;  /* margines boczny paska                           */
-  --ht-bar-bottom:  22px;  /* odstęp paska od dołu (+ safe area)              */
+  /* margines ekranu i arkusza: 26 px na typowym telefonie, płynnie mniej na wąskim (320 px → 20 px) */
+  --ht-gutter:      clamp(16px, 6.4vw, 26px);
   --ht-gap-section: 26px;  /* między sekcjami                                 */
   --ht-gap:         12px;  /* wewnątrz sekcji, między kartami                 */
   --ht-gap-form:    16px;  /* między polami formularza                        */
@@ -157,7 +158,13 @@ body {
   color: var(--ht-text);
   font-family: var(--ht-font);
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;  /* iPhone nie powiększa tekstu po obróceniu */
+  text-size-adjust: 100%;
+  touch-action: manipulation;      /* bez przybliżania dwukrotnym dotknięciem (aplikacja, nie strona) */
+  -webkit-tap-highlight-color: transparent; /* reakcję na dotyk dają stany :active */
 }
+::selection { background: var(--ht-press); color: var(--ht-text); }
+input { caret-color: var(--ht-text); }
 
 a { color: inherit; text-decoration: none; }
 button, input { font: inherit; color: inherit; }
@@ -285,7 +292,7 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 
 .ht-tile__face, .ht-tile-label, .ht-card, .ht-card-sm, .ht-card-action, .ht-avatar, .ht-icon-btn,
 .ht-btn, .ht-btn-text, .ht-chip, .ht-segmented button, .ht-bar__item, .ht-bar__icon,
-.ht-option, .ht-choice, .ht-filename, .ht-option .ht-well {
+.ht-filename {
   transition: background-color var(--ht-t-state) var(--ht-ease),
               border-color     var(--ht-t-state) var(--ht-ease),
               color            var(--ht-t-state) var(--ht-ease),
@@ -413,7 +420,7 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   border-radius: var(--ht-r-md);
   background: var(--ht-surface);       /* nigdy --ht-recess: zniknie na tle */
   border: 1px solid var(--ht-line);
-  font-size: var(--ht-fs-body);
+  font-size: var(--ht-fs-input);
   color: var(--ht-text);
   transition: background-color var(--ht-t-state) var(--ht-ease),
               border-color     var(--ht-t-state) var(--ht-ease);
@@ -506,31 +513,52 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   color: var(--ht-muted);
 }
 .ht-segmented button:hover { color: var(--ht-text); }
-.ht-segmented button[aria-selected="true"] { background: var(--ht-press); color: var(--ht-text); font-weight: 600; }
+.ht-segmented button:is([aria-selected="true"], [aria-pressed="true"]) { background: var(--ht-press); color: var(--ht-text); font-weight: 600; }
+.ht-segmented button { font-variant-numeric: tabular-nums; }
+/* Z ikonami: ikona nad etykietą, segment wysokości pola (np. Wideo / Bez dźwięku / Audio). */
+.ht-segmented--icons button {
+  height: auto;
+  min-height: calc(var(--ht-control) + var(--ht-gap));
+  padding: var(--ht-gap-label) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--ht-gap-label) / 2);
+  line-height: var(--ht-lh-label);
+}
+/* Wiele krótkich wartości (np. jakości): tor przewija się w poziomie, gdy się nie mieści. */
+.ht-segmented--scroll { overflow-x: auto; scrollbar-width: none; grid-auto-columns: minmax(max-content, 1fr); }
+.ht-segmented--scroll::-webkit-scrollbar { display: none; }
+.ht-segmented--scroll button { padding: 0 var(--ht-gap); }
 
-/* --- pasek dolny ---------------------------------------------------------- */
+/* --- pasek dolny ----------------------------------------------------------
+   Przyklejony do dolnej krawędzi, na całą szerokość, bez zaokrągleń: cienka linia u góry,
+   półprzezroczyste tło z rozmyciem nad przewijaną treścią. Strefa gestów iPhone'a pod spodem. */
 .ht-bar {
-  box-sizing: border-box;
+  box-sizing: content-box;     /* height = sam pasek, safe area dochodzi paddingiem */
   height: var(--ht-bar-h);
-  margin: 0 var(--ht-gutter-bar) calc(var(--ht-bar-bottom) + env(safe-area-inset-bottom));
-  padding: 0 8px;
-  border-radius: var(--ht-r-xl);
-  background: var(--ht-surface);
-  border: 1px solid var(--ht-line);
+  margin-top: var(--ht-gap-section);
+  padding: 0 calc(var(--ht-gutter) / 3) env(safe-area-inset-bottom);
+  background: var(--ht-bar-bg);
+  -webkit-backdrop-filter: blur(16px) saturate(115%);
+  backdrop-filter: blur(16px) saturate(115%);
+  border-top: 1px solid var(--ht-line);
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;            /* pasek stały: przy długiej treści zostaje na dole */
-  bottom: calc(var(--ht-bar-bottom) + env(safe-area-inset-bottom));
+  bottom: 0;
+  z-index: 2;
 }
 .ht-bar__item {
   flex: 1 1 0;
   min-height: var(--ht-hit);
-  padding: 4px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: calc(var(--ht-gap-label) / 2);
   color: var(--ht-icon);
 }
 .ht-bar__item:hover  { color: var(--ht-text); }
@@ -687,78 +715,28 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 .ht-playhead:focus-visible::-moz-range-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
 
 /* --- panel wyboru (np. po sprawdzeniu linku w Pobieraczku) ----------------------------
-   .ht-stack: kolumna bloków z odstępem sekcji; .ht-group: nagłówek + zawartość z odstępem w sekcji. */
+   Proste linie: grupy rozdziela cienka kreska, nie pudełka. Nagłówek grupy: nazwa po lewej,
+   bieżąca wartość po prawej (np. „Jakość … 720p, 22 MB”). Wybory: przełącznik segmentowy. */
 .ht-stack { display: flex; flex-direction: column; gap: var(--ht-gap-section); }
-.ht-group { display: flex; flex-direction: column; gap: var(--ht-gap); margin: 0; }
-.ht-group > h3, .ht-group .ht-section-head h3 { margin: 0; }
+.ht-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ht-gap);
+  margin: 0;
+  padding-top: var(--ht-gap);  /* pod kreską mniej niż nad nią: grupa należy do swojego nagłówka */
+  border-top: 1px solid var(--ht-line);
+}
+.ht-group h3 { margin: 0; }
+.ht-group .ht-section-head .ht-meta { font-variant-numeric: tabular-nums; }
 
 /* Główny materiał: podgląd na całą szerokość, pod nim tytuł (najwyżej 2 linie) i opis. */
 .ht-media { display: flex; flex-direction: column; gap: var(--ht-gap); }
 .ht-media__text { display: flex; flex-direction: column; gap: var(--ht-gap-label); }
-.ht-media__title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.ht-media__title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-wrap: balance; }
 
 /* Od / ▶ / Do w jednym rzędzie; przycisk kwadratowy o wysokości pola. */
 .ht-trim { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: var(--ht-gap); }
 .ht-trim__play { width: var(--ht-control); padding: 0; }
-
-/* Kafle wyboru (np. Wideo / Bez dźwięku / Audio): kontrolka na --ht-surface, wybrany --ht-press.
-   Ikona w studzience świeci akcentem tylko w wybranym kaflu (rola „ikona w studzience”). */
-.ht-options { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--ht-gap); }
-.ht-option {
-  box-sizing: border-box;
-  height: var(--ht-action);    /* jak karta akcji: studzienka + etykieta do 2 linii */
-  padding: var(--ht-pad-card);
-  border-radius: var(--ht-r-lg);
-  background: var(--ht-surface);
-  border: 1px solid var(--ht-line);
-  color: var(--ht-muted);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
-  text-align: left;
-}
-.ht-option__label { font-size: var(--ht-fs-section); font-weight: 600; line-height: var(--ht-lh-label); }
-.ht-option:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); color: var(--ht-text); }
-.ht-option:active { transform: scale(var(--ht-scale-card)); }
-.ht-option[aria-pressed="true"] { background: var(--ht-press); border-color: var(--ht-line-strong); color: var(--ht-text); }
-.ht-option[aria-pressed="false"] .ht-well { color: var(--ht-faint); }
-
-/* Pigułki wyboru z podpisem (np. 720p / 22 MB): przewijany rząd od krawędzi do krawędzi ekranu. */
-.ht-choices {
-  display: flex;
-  gap: var(--ht-gap);
-  margin: 0 calc(-1 * var(--ht-gutter));
-  padding: 0 var(--ht-gutter);
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scroll-padding: 0 var(--ht-gutter);
-  scrollbar-width: none;
-}
-.ht-choices::-webkit-scrollbar { display: none; }
-.ht-choice {
-  box-sizing: border-box;
-  flex: none;
-  min-width: var(--ht-tile);
-  height: var(--ht-control);
-  padding: 0 var(--ht-pad-card);
-  border-radius: var(--ht-r-md);
-  background: var(--ht-surface);
-  border: 1px solid var(--ht-line);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  text-align: left;
-  scroll-snap-align: start;
-}
-.ht-choice__label { font-size: var(--ht-fs-section); font-weight: 600; line-height: var(--ht-lh-label); color: var(--ht-label); }
-.ht-choice__sub { font-size: var(--ht-fs-label); line-height: var(--ht-lh-label); color: var(--ht-muted); font-variant-numeric: tabular-nums; }
-.ht-choice__sub:empty { display: none; }
-.ht-choice:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); }
-.ht-choice:active { transform: scale(var(--ht-scale-sm)); }
-.ht-choice[aria-pressed="true"] { background: var(--ht-press); border-color: var(--ht-line-strong); }
-.ht-choice[aria-pressed="true"] .ht-choice__label { color: var(--ht-text); }
 
 /* Wiersz z nazwą pliku: dotknięcie zamienia go w pole (jak pole, ale z ołówkiem). */
 .ht-filename {
@@ -775,8 +753,24 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   color: var(--ht-faint);
   text-align: left;
 }
-.ht-filename__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ht-fs-body); color: var(--ht-text); }
+.ht-filename__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ht-fs-input); color: var(--ht-text); }
 .ht-filename:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); color: var(--ht-text); }
+
+/* Akcja główna przyklejona nad paskiem dolnym, pod kciukiem, dopóki panel jest na ekranie.
+   Tło ekranu pod spodem wygasza przewijaną treść, żeby przycisk nie wisiał na tekście. */
+.ht-dock {
+  position: sticky;
+  bottom: calc(var(--ht-bar-h) + env(safe-area-inset-bottom) + 1px);
+  z-index: 1;
+  padding: var(--ht-gap) 0;
+  margin-bottom: calc(-1 * var(--ht-gap));
+  background: linear-gradient(to top, var(--ht-bg) 70%, transparent);
+}
+.ht-dock > .ht-btn { width: 100%; } /* przycisk w bloku sam się nie rozciąga */
+
+/* Arkusz i przyciemnienie nad paskiem dolnym (z-index 2). */
+.ht-scrim, .ht-sheet { z-index: 3; }
+
 
 /* --- siatka miniatur: elementy posta (zdjęcia do zaznaczenia, filmy do wybrania) ---------- */
 .ht-thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ht-gap); }
@@ -940,4 +934,5 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 @media (prefers-reduced-transparency: reduce) {
   .ht-scrim { background: var(--ht-scrim-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
   .ht-sheet { background: var(--ht-raised); }
+  .ht-bar { background: var(--ht-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }

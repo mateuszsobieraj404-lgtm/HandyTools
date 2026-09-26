@@ -100,7 +100,7 @@ Sześć rozmiarów, dziewięć ról:
 | `.ht-title` | nagłówek ekranu narzędzia, arkusza, panelu | 20 / 600 / -0.025em | 1.2 | `--ht-text` |
 | `.ht-value` | wartość na karcie małej (czas, licznik) | 17 / 600 / -0.02em, `tabular-nums` | 1.2 | `--ht-text` |
 | `.ht-card-title` | tytuł karty (szerokiej i akcji); napis przycisku | 15 / 600 / -0.015em | 1.2 | `--ht-text` |
-| - | tekst w polu wpisywania | 15 / 400 | - | `--ht-text` |
+| - | tekst w polu wpisywania | 16 / 400 (`--ht-fs-input`; poniżej 16 px iPhone przybliża stronę przy dotknięciu pola) | - | `--ht-text` |
 | `.ht-section` | nagłówek sekcji; aktywny segment; przycisk tekstowy | 13.5 / 600 / -0.01em | 1.3 | `--ht-text` |
 | `.ht-lead` | zdanie wiodące, opis pod nagłówkiem | 13.5 / 400 | 1.45 | `--ht-muted` |
 | `.ht-tile-label` | etykieta kafla | 12.5 / 500 | 1.3 | `--ht-label` |
@@ -144,13 +144,13 @@ Zasady: im mniejszy element, tym mniejszy promień. Kontener nigdy nie ma promie
 | `--ht-well` | 44 px | studzienka ikony w każdej karcie |
 | `--ht-tile` | 92 px | wysokość kafla i karty małej |
 | `--ht-action` | 112 px | wysokość karty akcji |
-| `--ht-bar-h` | 82 px | wysokość paska dolnego |
+| `--ht-bar-h` | 58 px | wysokość paska dolnego (bez strefy gestów iPhone'a) |
 
 Kafel ma wysokość 92 px i szerokość kolumny (około 99 px przy ekranie 390 px). Nie jest kwadratem.
 
 **Odstępy**
 
-- Margines ekranu i arkusza: **26 px**. Jedyny wyjątek to pasek dolny: 16 px po bokach, 22 px od dołu plus `env(safe-area-inset-bottom)`.
+- Margines ekranu i arkusza: **26 px** na typowym telefonie, płynnie mniej na wąskim (`clamp(16px, 6.4vw, 26px)`: 320 px → 20 px). Pasek dolny nie ma marginesów: leży na całej szerokości przy dolnej krawędzi.
 - Między blokami ekranu (nagłówek, wyszukiwarka, sekcje): **26 px**.
 - Wewnątrz sekcji, między kartami: **12 px**.
 - Formularz: etykieta → pole 7 px, pole → pole 16 px.
@@ -230,7 +230,8 @@ Panel, który nie zakrywa całego ekranu, zostawia tło **widoczne i rozmyte**:
 ## 9. Wdrożenie webowe
 
 - `min-height: 100dvh`, nigdy `100vh`: pasek adresu w Safari powoduje skok układu.
-- Pasek dolny i arkusz odsunięte o `env(safe-area-inset-bottom)`.
+- Pasek dolny i arkusz mają pod treścią `env(safe-area-inset-bottom)` (strefa gestów iPhone'a).
+- **Aplikacja, nie strona: bez powiększania.** Meta viewport `maximum-scale=1, user-scalable=no`, gest szczypania blokowany w `main.js` (Safari ignoruje meta), `touch-action: manipulation` (bez przybliżania dwukrotnym dotknięciem), `text-size-adjust: 100%` (bez powiększania tekstu po obróceniu), pola 16 px (bez przybliżania przy dotknięciu pola).
 - Font self-hostowany, nie przez `<link>` do Google Fonts.
 - Ikona PWA: sygnet na tle `--ht-bg`.
 - Ekran ma najwyżej `--ht-screen-max` (480 px) szerokości i jest wyśrodkowany; na tablecie i komputerze nie rozciąga się.
@@ -277,7 +278,7 @@ Wszystkie w `handytools-tokens.css`. Jeśli potrzebujesz czegoś, czego tu nie m
 
 **Studzienka** `.ht-well` - 44 × 44, `--ht-recess`, promień 12, ikona 22 px w akcencie.
 
-**Pasek dolny** `.ht-bar` - 82 px, `--ht-surface`, promień 26, pięć pozycji o równej szerokości. Każda pozycja ma pole ikony **34 × 30 px** (ten sam gabaryt we wszystkich pozycjach, inaczej etykiety rozjeżdżają się w pionie), ikonę 22 px i etykietę `.ht-bar-label`.
+**Pasek dolny** `.ht-bar` - 58 px + strefa gestów, przyklejony do dolnej krawędzi na całą szerokość, bez zaokrągleń. Tło `--ht-bar-bg` (półprzezroczyste `--ht-surface`) z rozmyciem nad przewijaną treścią, u góry linia `--ht-line`; przy `prefers-reduced-transparency` pełne `--ht-surface`. Pięć pozycji o równej szerokości. Każda pozycja ma pole ikony **34 × 30 px** (ten sam gabaryt we wszystkich pozycjach, inaczej etykiety rozjeżdżają się w pionie), ikonę 22 px i etykietę `.ht-bar-label`.
 - Pozycja wyróżniona (`.ht-bar__item--primary`, w makiecie: Skróty), najwyżej jedna: pigułka `--ht-raised` pod ikoną, ikona w akcencie, etykieta `--ht-text` 600. Zawsze, na każdym ekranie.
 - Pozycja, której ekran jest otwarty (`aria-current="page"`): etykieta `--ht-text` 600, bez akcentu i bez pigułki.
 - Pozycja pusta, nieprzypisana (`.ht-bar__item--empty`, w makiecie: „Własna”): ikona w `--ht-faint` z przerywanym konturem.
@@ -298,7 +299,7 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 
 **Chip** `.ht-chip` - 30 px, promień 10, 12.5/600 w `--ht-muted`, bez tła; najazd `--ht-hover`, `.ht-hit`.
 
-**Przełącznik segmentowy** `.ht-segmented` - 2 albo 3 równe segmenty (np. Wideo / Bez dźwięku / Audio); tor na `--ht-recess`, padding 4, promień 16. Segment 40 px, promień 12, 13.5 px. Aktywny: `--ht-press`, `--ht-text`, 600. Nieaktywny: `--ht-muted`, 500. `.ht-hit` na segmentach.
+**Przełącznik segmentowy** `.ht-segmented` - równe segmenty (np. Wideo / Bez dźwięku / Audio, MP4 / MKV); zaznaczenie przez `aria-selected` (zakładki) albo `aria-pressed` (wybór). Wariant `--icons`: ikona 18 px nad etykietą. Wariant `--scroll`: wiele krótkich wartości (np. jakości), tor przewija się w poziomie; tor na `--ht-recess`, padding 4, promień 16. Segment 40 px, promień 12, 13.5 px. Aktywny: `--ht-press`, `--ht-text`, 600. Nieaktywny: `--ht-muted`, 500. `.ht-hit` na segmentach.
 
 **Kropka stanu** `.ht-dot` - 7 × 7 px, okrągła, akcent. Dwa znaczenia i nic poza nimi:
 - statyczna: coś nowego czeka (jest aktualizacja),
@@ -308,9 +309,7 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 
 **Znacznik pozycji** `.ht-range__head` + `.ht-playhead` - gdzie jest odtwarzanie na suwaku zakresu: pionowa linia na torze i pinezka (nóżka + główka w `--ht-text`) w osobnym pasie pod torem, pole dotyku 44 px. Pinezkę łapie się i przewija cały materiał. Osobny pas, bo leżąc na torze zasłaniałaby uchwyty zakresu. Tylko przy odtwarzaczu (przy stopklatkach ukryty).
 
-**Panel wyboru** (np. po sprawdzeniu linku). `.ht-stack` układa bloki z odstępem `--ht-gap-section`, `.ht-group` to nagłówek `.ht-section` + zawartość z odstępem `--ht-gap`. Na górze `.ht-media`: podgląd na całą szerokość, pod nim tytuł `.ht-title` (najwyżej 2 linie) i opis. Wybory nie są rozwijanymi listami, tylko:
-- **Kafle wyboru** `.ht-option` (2–3 w rzędzie, `aria-pressed`): wysokość karty akcji (112 px, etykieta do 2 linii), `--ht-surface`, wybrany `--ht-press`. Ikona w studzience świeci akcentem tylko w wybranym kaflu, w pozostałych jest `--ht-faint`.
-- **Pigułki wyboru** `.ht-choice` w przewijanym rzędzie `.ht-choices` (od krawędzi do krawędzi ekranu, przyciąganie): etykieta 13.5/600 + podpis 12.5 (np. rozmiar pliku dla tej opcji). Wybrana `--ht-press`.
+**Panel wyboru** (np. po sprawdzeniu linku). Prosto, liniami, nie pudełkami. `.ht-stack` układa bloki z odstępem `--ht-gap-section`. Każda `.ht-group` zaczyna się cienką kreską `--ht-line`, pod nią mniej miejsca niż nad nią. Nagłówek grupy to `.ht-section-head`: nazwa po lewej, bieżąca wartość po prawej w `.ht-meta` (np. „Jakość … 720p, 22 MB”). Na górze `.ht-media`: podgląd na całą szerokość, pod nim tytuł `.ht-title` (najwyżej 2 linie) i opis. Wszystkie wybory to jeden typ kontrolki: przełącznik segmentowy. Akcja główna w `.ht-dock`: przyklejona nad paskiem dolnym, pod kciukiem, na tle wygaszającym treść pod spodem. Bez kaskady wejść: narzędzie wczytuje się od razu do zadania.
 - **Wiersz nazwy** `.ht-filename`: wygląda jak pole z ołówkiem, dotknięcie zamienia go w pole.
 - **Rząd fragmentu** `.ht-trim`: pole Od, kwadratowy przycisk ▶, pole Do.
 

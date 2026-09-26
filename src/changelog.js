@@ -3,6 +3,18 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.7.0',
+    date: '2026-09-26',
+    title: 'Dopracowany wygląd i dopasowanie do telefonu',
+    items: [
+      ['Zmiana', 'Pasek dolny jest niższy i przylega do dolnej krawędzi ekranu, na całą szerokość, z cienką linią u góry.'],
+      ['Poprawka', 'Aplikacji nie da się już przypadkiem powiększyć: ani dwoma palcami, ani dwukrotnym dotknięciem, ani przy dotknięciu pola tekstowego.'],
+      ['Zmiana', 'Marginesy dopasowują się do szerokości telefonu, więc na małych ekranach nic się nie ściska.'],
+      ['Zmiana', 'Panel Pobieraczka jest prostszy: grupy oddzielone cienkimi liniami, bieżący wybór i rozmiar w nagłówku każdej grupy, wszystkie wybory w jednym stylu przełączników.'],
+      ['Nowe', 'Przycisk „Pobierz” jest przyklejony nad paskiem, zawsze pod kciukiem.'],
+    ],
+  },
+  {
     version: '0.6.0',
     date: '2026-09-26',
     title: 'Nowy panel Pobieraczka',

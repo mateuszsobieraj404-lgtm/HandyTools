@@ -195,6 +195,9 @@ document.addEventListener('click', (e) => {
   }
 });
 document.addEventListener('keydown', (e) => e.key === 'Escape' && closeSheet());
+// Safari na iPhonie ignoruje user-scalable=no w meta viewport; gest szczypania blokujemy wprost.
+// (Dwukrotne dotknięcie blokuje touch-action: manipulation w tokenach.)
+['gesturestart', 'gesturechange'].forEach((type) => document.addEventListener(type, (e) => e.preventDefault(), { passive: false }));
 app.addEventListener('input', (e) => e.target.id === 'ht-find' && renderGrid(false));
 window.addEventListener('hashchange', route);
 route();

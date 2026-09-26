@@ -465,10 +465,9 @@ function main(el) {
     const meta = [info.site, info.duration && formatTime(info.duration)].filter(Boolean).join(' · ');
     const dur = sel?.max;
     fileName = info.title;
-    result.classList.add("ht-stagger", "ht-stack"); // grupy wjeżdżają po kolei, w kolejności czytania
-    result.style.setProperty('--start', '0ms');
+    result.classList.add("ht-stack"); // narzędzie wczytuje się od razu do zadania, bez kaskady wejść
     result.innerHTML = `
-      <div class="ht-media" style="--i:0">
+      <div class="ht-media">
         <div id="dl-preview-box"></div>
         <div class="ht-media__text">
           <h2 class="ht-title ht-media__title">${esc(info.title)}</h2>
@@ -476,7 +475,7 @@ function main(el) {
         </div>
       </div>
 
-      <section class="ht-group" style="--i:1" aria-labelledby="dl-g-frag">
+      <section class="ht-group" aria-labelledby="dl-g-frag">
         <div class="ht-section-head">
           <h3 class="ht-section" id="dl-g-frag">Fragment</h3>
           <span class="ht-meta" id="dl-frag-meta"></span>
@@ -506,20 +505,17 @@ function main(el) {
       </section>
 
       ${info.heights.length ? `
-      <section class="ht-group" style="--i:2" aria-labelledby="dl-g-kind">
+      <section class="ht-group" aria-labelledby="dl-g-kind">
         <h3 class="ht-section" id="dl-g-kind">Co pobrać</h3>
-        <div class="ht-options" role="group" aria-labelledby="dl-g-kind">
+        <div class="ht-segmented ht-segmented--icons" role="group" aria-labelledby="dl-g-kind">
           ${KINDS.map(([k, label, ic]) => `
-            <button type="button" class="ht-option" data-kind="${k}" aria-pressed="${choice.kind === k}">
-              <span class="ht-well">${icon(ic, 'md')}</span>
-              <span class="ht-option__label">${label}</span>
-            </button>`).join('')}
+            <button type="button" data-kind="${k}" aria-pressed="${choice.kind === k}">${icon(ic, 'sm')}${label}</button>`).join('')}
         </div>
       </section>` : ''}
 
-      <div id="dl-opts" class="ht-stack" style="--i:3"></div>
+      <div id="dl-opts" class="ht-stack"></div>
 
-      <section class="ht-group" style="--i:4" aria-labelledby="dl-g-file">
+      <section class="ht-group" aria-labelledby="dl-g-file">
         <h3 class="ht-section" id="dl-g-file">Plik</h3>
         <div id="dl-name-box">
           <button type="button" class="ht-filename" data-dl="rename" aria-label="Zmień nazwę pliku">
@@ -530,32 +526,33 @@ function main(el) {
         </div>
       </section>
 
-      <button type="button" class="ht-btn ht-btn--primary" style="--i:5" data-dl="download" ${load(KEY.job, null) ? 'disabled' : ''}>${icon('pobieranie', 'sm')}<span id="dl-cta">Pobierz</span></button>`;
+      <div class="ht-dock">
+        <button type="button" class="ht-btn ht-btn--primary" data-dl="download" ${load(KEY.job, null) ? 'disabled' : ''}>${icon('pobieranie', 'sm')}<span id="dl-cta">Pobierz</span></button>
+      </div>`;
     renderOptions();
     renderPreview();
     syncRange();
   }
 
-  // Pigułki zależne od rodzaju: jakość + format (wideo) albo format + bitrate (audio).
-  // `data-size` mówi, którą opcję wstawić do szacunku rozmiaru (updateSize), `data-note` to podpis bez rozmiaru.
+  // Grupy zależne od rodzaju: jakość + format (wideo) albo format + bitrate (audio).
+  // Jeden typ kontrolki (przełącznik segmentowy); bieżąca wartość i rozmiar w nagłówku grupy.
   function renderOptions() {
-    const group = (title, field, items) => `
-      <section class="ht-group" aria-label="${title}">
-        <h3 class="ht-section">${title}</h3>
-        <div class="ht-choices" role="group" aria-label="${title}">
-          ${items.map(([value, label, size, note]) => `
-            <button type="button" class="ht-choice" data-choice="${field}" data-value="${value}" aria-pressed="${String(choice[field]) === String(value)}">
-              <span class="ht-choice__label">${label}</span>
-              <span class="ht-choice__sub"${size ? ` data-size='${JSON.stringify(size)}'` : ''}>${note ?? ''}</span>
-            </button>`).join('')}
+    const group = (title, field, items, scroll) => `
+      <section class="ht-group" aria-labelledby="dl-g-${field}">
+        <div class="ht-section-head">
+          <h3 class="ht-section" id="dl-g-${field}">${title}</h3>
+          <span class="ht-meta" data-value-of="${field}"></span>
+        </div>
+        <div class="ht-segmented${scroll ? ' ht-segmented--scroll' : ''}" role="group" aria-labelledby="dl-g-${field}">
+          ${items.map(([value, label]) => `
+            <button type="button" data-choice="${field}" data-value="${value}" aria-pressed="${String(choice[field]) === String(value)}">${label}</button>`).join('')}
         </div>
       </section>`;
-    const html = choice.kind === 'audio'
-      ? group('Format', 'format', AUDIO.map((f) => [f, f.toUpperCase(), { format: f }]))
-        + (LOSSY.includes(choice.format) ? group('Bitrate', 'bitrate', BITRATES.map((b) => [b, `${b} kb/s`, { bitrate: b }])) : '')
-      : group('Jakość', 'height', info.heights.map((h) => [h, `${h}p`, { height: h }]))
-        + group('Format', 'container', [['mp4', 'MP4', null, 'do Zdjęć'], ['mkv', 'MKV', null, 'do Plików']]);
-    $('#dl-opts').innerHTML = html;
+    $('#dl-opts').innerHTML = choice.kind === 'audio'
+      ? group('Format', 'format', AUDIO.map((f) => [f, f.toUpperCase()]))
+        + (LOSSY.includes(choice.format) ? group('Bitrate', 'bitrate', BITRATES.map((b) => [b, b])) : '')
+      : group('Jakość', 'height', info.heights.map((h) => [h, h]), info.heights.length > 5)
+        + group('Format', 'container', [['mp4', 'MP4'], ['mkv', 'MKV']]);
     $('#dl-ext').textContent = `.${ext()}`;
     updateSize();
   }
@@ -726,16 +723,20 @@ function main(el) {
     return v == null ? null : v + (o.kind === 'video' ? info.audioSize ?? 0 : 0);
   }
 
-  // Rozmiar pod każdą pigułką (ta opcja przy reszcie wyborów bez zmian), na przycisku i długość fragmentu.
+  // Wartości w nagłówkach grup, rozmiar na przycisku i długość fragmentu.
   function updateSize() {
     if (!choice || !$('#dl-cta')) return;
     const part = sel ? (sel.to - sel.from) / sel.max : 1;
-    el.querySelectorAll('[data-size]').forEach((s) => {
-      const bytes = bytesFor({ ...choice, ...JSON.parse(s.dataset.size) });
-      s.textContent = bytes ? formatSize(bytes * part) : '';
-    });
     const total = bytesFor(choice);
-    $('#dl-cta').textContent = total ? `Pobierz (${formatSize(total * part)})` : 'Pobierz';
+    const size = total ? formatSize(total * part) : null;
+    const values = {
+      height: [`${choice.height}p`, size].filter(Boolean).join(', '),
+      container: choice.container === 'mp4' ? 'Zapis w Zdjęciach' : 'Zapis w Plikach',
+      format: LOSSY.includes(choice.format) ? 'Stratny' : ['Bezstratny', size].filter(Boolean).join(', '),
+      bitrate: [`${choice.bitrate} kb/s`, size].filter(Boolean).join(', '),
+    };
+    el.querySelectorAll('[data-value-of]').forEach((s) => (s.textContent = values[s.dataset.valueOf]));
+    $('#dl-cta').textContent = size ? `Pobierz (${size})` : 'Pobierz';
     const fragMeta = $('#dl-frag-meta');
     if (fragMeta && sel) {
       fragMeta.textContent = sel.from === 0 && sel.to === sel.max ? 'Cały materiał' : `${formatTime(sel.to - sel.from)} z ${formatTime(sel.max)}`;
