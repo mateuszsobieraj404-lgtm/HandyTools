@@ -3,6 +3,15 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.3.1',
+    date: '2026-09-26',
+    title: 'X po zalogowaniu',
+    items: [
+      ['Nowe', 'Pobieranie z X wpisów ukrytych przed niezalogowanymi (treść wrażliwa): serwer korzysta z logowania do X w Firefoksie na komputerze. Tylko dla linków z X, inne serwisy działają bez logowania.'],
+      ['Zmiana', 'Komunikat przy ukrytym filmie z X podpowiada, co włączyć w ustawieniach X.'],
+    ],
+  },
+  {
     version: '0.3.0',
     date: '2026-09-26',
     title: 'Aktualizacje',

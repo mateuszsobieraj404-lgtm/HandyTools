@@ -14,6 +14,11 @@ import { toSeconds } from '../src/time.js';
 const PORT = Number(process.env.PORT) || 8787;
 const PASSWORD = process.env.HT_PASSWORD;
 const PYTHON = process.env.HT_PYTHON || 'python';
+// X ukrywa część filmów (treść wrażliwa) przed niezalogowanymi. Dla linków z X bierzemy
+// ciasteczka z przeglądarki, w której jesteś zalogowany na X. Firefox, bo Chrome i Edge
+// szyfrują ciasteczka tak, że yt-dlp ich nie odczyta. Inne serwisy idą bez logowania.
+const X_COOKIES = process.env.HT_X_COOKIES_BROWSER || 'firefox';
+const cookieArgs = (url) => (/^(www\.|mobile\.)?(x|twitter)\.com$/i.test(new URL(url).hostname) ? ['--cookies-from-browser', X_COOKIES] : []);
 const TMP = path.join(os.tmpdir(), 'handytools');
 const JOB_TTL = 60 * 60 * 1000; // plik czeka na odbiór najwyżej godzinę
 const LOG = path.join(import.meta.dirname, 'server.log'); // błędy do diagnozy (poza repo)
@@ -61,7 +66,7 @@ function explain(stderr) {
   const line = stderr.split('\n').filter((l) => l.startsWith('ERROR:')).pop() || stderr.trim().split('\n').pop() || '';
   if (/Unsupported URL/i.test(line)) return 'Ten serwis nie jest obsługiwany.';
   if (/\[twitter\].*(No video could be found|Video #\d+ is unavailable)/i.test(line)) {
-    return 'X nie pokazuje tego filmu niezalogowanym (zwykle treść oznaczona jako wrażliwa). Takie wpisy wymagają zalogowania: na razie nieobsługiwane.';
+    return 'X ukrywa ten film (zwykle treść wrażliwa). Zaloguj się na X w Firefoksie na komputerze i włącz w X: Ustawienia → Prywatność i bezpieczeństwo → Treści, które widzisz → pokazuj treści wrażliwe.';
   }
   if (/DRM/i.test(line)) return 'Ta treść jest zabezpieczona (DRM) i nie da się jej pobrać.';
   if (/private|unavailable|removed|not exist|404/i.test(line)) return 'Materiał jest prywatny, usunięty albo niedostępny.';
@@ -99,7 +104,7 @@ async function info(req, res) {
   const { url } = await readJson(req);
   if (!validUrl(url)) return send(res, 400, { error: 'To nie wygląda na link (musi zaczynać się od http).' });
 
-  const { code, out, err } = await ytdlp(['-J', '--', url]);
+  const { code, out, err } = await ytdlp([...cookieArgs(url), '-J', '--', url]);
   if (code !== 0) {
     log('INFO', url, tail(err));
     return send(res, 422, { error: explain(err) });
@@ -153,7 +158,7 @@ async function createJob(req, res) {
 
   // ponytail: postęp liczony per strumień; przy wideo obraz i dźwięk idą osobno, więc licznik
   // raz dobiega do 100 i zaczyna od nowa (dźwięk jest krótki). Suma ważona, gdyby to przeszkadzało.
-  const { code, err } = await ytdlp([...args, '--', url], (line) => {
+  const { code, err } = await ytdlp([...cookieArgs(url), ...args, '--', url], (line) => {
     const pct = line.match(/^\[download\]\s+([\d.]+)%/);
     if (pct) {
       job.stage = 'download';
