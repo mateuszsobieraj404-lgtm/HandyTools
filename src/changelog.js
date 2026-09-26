@@ -3,6 +3,18 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.5.0',
+    date: '2026-09-26',
+    title: 'Posty z wieloma elementami i zdjęcia',
+    items: [
+      ['Nowe', 'Pobieraczek pobiera zdjęcia: Instagram, TikTok (pokazy slajdów), X, Reddit, Pinterest i setki innych serwisów.'],
+      ['Nowe', 'Post z wieloma elementami (karuzela, pokaz slajdów, wpis z kilkoma filmami) pokazuje siatkę miniatur. Zdjęcia zaznaczasz i zapisujesz naraz jednym oknem Udostępnij (→ Zdjęcia). Film dotykasz i ustawiasz jak zwykle: jakość, fragment, format.'],
+      ['Poprawka', 'Wpis z kilkoma filmami nie pobiera już tylko pierwszego.'],
+      ['Zmiana', 'Instagram i Reddit korzystają z logowania w Firefoksie na komputerze, tak jak X. Bez logowania Instagram pokazuje posty ze zdjęciami tylko zalogowanym.'],
+      ['Zmiana', 'Serwer przy starcie aktualizuje też gallery-dl (program do zdjęć), obok yt-dlp.'],
+    ],
+  },
+  {
     version: '0.4.1',
     date: '2026-09-26',
     title: 'Znacznik pozycji',

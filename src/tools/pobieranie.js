@@ -37,7 +37,9 @@ const save = (k, v) => {
 };
 const prefs = () => ({ ...DEFAULT_PREFS, ...load(KEY.prefs, {}) });
 
-const plural = (n) => (n === 1 ? 'pobranie' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'pobrania' : 'pobrań');
+// Polska odmiana po liczbie: pl(3, ['zdjęcie', 'zdjęcia', 'zdjęć']) → 'zdjęcia'.
+const pl = (n, [one, few, many]) => (n === 1 ? one : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? few : many);
+const plural = (n) => pl(n, ['pobranie', 'pobrania', 'pobrań']);
 const base = (cfg = load(KEY.cfg, {})) => cfg.url.replace(/\/+$/, '');
 const fileUrl = (job) => `${base()}/jobs/${job.id}/file`;
 const options = (entries, selected) => entries.map(([v, label]) => `<option value="${v}"${String(v) === String(selected) ? ' selected' : ''}>${label}</option>`).join('');
@@ -259,6 +261,8 @@ function main(el) {
   let info = null; // wynik /info dla bieżącego linku
   let choice = null; // { kind, height, container, format, bitrate }
   let sel = null; // wybrany fragment w sekundach: { from, to, max }
+  let picked = null; // post z wieloma elementami: { picker, url, title, site, videos, photos, selected, activeVideo }
+  let photoState = { status: 'idle' }; // zdjęcia: idle → fetching (done/total) → ready (files) | error
 
   el.innerHTML = `
     <form class="ht-section-block" id="dl-form" novalidate>
@@ -272,6 +276,7 @@ function main(el) {
       </div>
       <button class="ht-btn ht-btn--primary" type="submit" id="dl-check">Sprawdź</button>
     </form>
+    <section class="ht-section-block" id="dl-picker" aria-live="polite" hidden></section>
     <section class="ht-section-block" id="dl-result" aria-live="polite" hidden></section>
     <section class="ht-section-block" id="dl-job" aria-live="polite" hidden></section>
     <section class="ht-section-block" id="dl-history" aria-labelledby="dl-h" hidden></section>
@@ -289,17 +294,35 @@ function main(el) {
     box.hidden = !msg;
   };
 
-  /* sprawdzenie linku */
-  async function check() {
-    const url = findUrl(urlField.value);
-    urlField.value = url;
+  /* sprawdzenie linku; `item` = wybrany film z posta z wieloma elementami */
+  async function check(item = null) {
+    const url = item ? picked.url : findUrl(urlField.value);
+    if (!item) urlField.value = url;
     showError($('#dl-err'), '');
     if (!url) return showError($('#dl-err'), 'Wklej link.');
+    if (!item) {
+      picked = null;
+      $('#dl-picker').hidden = true;
+    }
     result.hidden = false;
     result.innerHTML = '<div class="ht-card ht-skeleton" style="height:var(--ht-tile)" role="status" aria-label="Sprawdzam link"></div>';
+    if (item) result.scrollIntoView({ block: 'start', behavior: 'smooth' });
     $('#dl-check').disabled = true;
     try {
-      info = await api('/info', { url });
+      const data = await api('/info', item ? { url, item } : { url });
+      if (data.picker) {
+        result.hidden = true;
+        info = null;
+        picked = { ...data, selected: new Set(Array.from({ length: data.photos }, (_, i) => i)), activeVideo: null };
+        photoState = { status: 'idle' };
+        $('#dl-check').className = 'ht-btn ht-btn--secondary';
+        return renderPicker();
+      }
+      info = data;
+      if (picked) {
+        picked.activeVideo = item;
+        renderPicker(); // podświetl wybrany film, przycisk zdjęć przechodzi w drugorzędny
+      }
       const p = prefs();
       choice = {
         kind: info.heights.length ? 'video' : 'audio',
@@ -317,6 +340,117 @@ function main(el) {
     } finally {
       $('#dl-check').disabled = false;
     }
+  }
+
+  /* post z wieloma elementami: filmy (dotknij → zwykły panel) i zdjęcia (zaznacz → zapisz naraz) */
+  const photoSrc = (n) => `${base()}/picker/${picked.picker}/${n}`;
+
+  function renderPicker() {
+    const p = picked;
+    const box = $('#dl-picker');
+    box.hidden = false;
+    const parts = [
+      p.photos && `${p.photos} ${pl(p.photos, ['zdjęcie', 'zdjęcia', 'zdjęć'])}`,
+      p.videos.length && `${p.videos.length} ${pl(p.videos.length, ['film', 'filmy', 'filmów'])}`,
+    ].filter(Boolean).join(' i ');
+    const hint = [p.videos.length && 'Dotknij filmu, żeby go ustawić i pobrać.', p.photos && 'Dotknij zdjęcia, żeby je zaznaczyć albo odznaczyć.'].filter(Boolean).join(' ');
+    box.innerHTML = `
+      <div class="ht-card">
+        <span class="ht-well">${icon('pobieranie', 'md')}</span>
+        <span class="ht-card__text"><span class="ht-card-title">${esc(p.title)}</span><span class="ht-caption">${esc(p.site)}</span></span>
+      </div>
+      <div class="ht-section-head">
+        <h2 class="ht-section">W poście: ${parts}</h2>
+        ${p.photos > 1 ? `<button type="button" class="ht-btn-text" data-dl="all">${p.selected.size ? 'Odznacz' : 'Zaznacz'} wszystkie</button>` : ''}
+      </div>
+      <span class="ht-caption">${hint}</span>
+      <div class="ht-thumbs">
+        ${p.videos.map((v) => `
+          <button type="button" class="ht-thumb" data-video="${v.item}" aria-label="Film ${v.item}${v.duration ? `, ${formatTime(v.duration)}` : ''}"${p.activeVideo === v.item ? ' aria-current="true"' : ''}>
+            ${v.thumbnail ? `<img src="${esc(v.thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}
+            <span class="ht-thumb__badge">${icon('odtworz', 'sm')}${v.duration ? formatTime(v.duration) : ''}</span>
+          </button>`).join('')}
+        ${Array.from({ length: p.photos }, (_, n) => `
+          <button type="button" class="ht-thumb" data-photo="${n}" aria-label="Zdjęcie ${n + 1}" aria-pressed="${p.selected.has(n)}">
+            <img src="${esc(photoSrc(n))}" alt="" loading="lazy">
+            <span class="ht-thumb__check">${icon('zaznacz', 'sm')}</span>
+          </button>`).join('')}
+      </div>
+      ${p.photos ? '<div class="ht-field-group" id="dl-photos-act"></div>' : ''}`;
+    renderPhotoAction();
+  }
+
+  function renderPhotoAction() {
+    const box = $('#dl-photos-act');
+    if (!box) return;
+    const n = picked.selected.size;
+    const kind = info ? 'secondary' : 'primary'; // wybrany film ma już swoje „Pobierz”
+    const s = photoState;
+    box.innerHTML = s.status === 'fetching'
+      ? `<button type="button" class="ht-btn ht-btn--${kind}" disabled>Pobieram ${s.done}/${s.total}…</button>`
+      : s.status === 'ready'
+        ? `<button type="button" class="ht-btn ht-btn--primary" data-dl="photos-save">${icon('pobieranie', 'sm')}Zapisz (${s.files.length})</button>
+           ${IOS ? `<span class="ht-caption">W oknie Udostępnij wybierz „Zachowaj ${s.files.length === 1 ? 'obraz' : `${s.files.length} ${pl(s.files.length, ['obraz', 'obrazy', 'obrazów'])}`}”, żeby trafiły do Zdjęć.</span>` : ''}`
+        : `${s.status === 'error' ? `<span class="ht-field-error" role="alert">${esc(s.error)}</span>` : ''}
+           <button type="button" class="ht-btn ht-btn--${kind}" data-dl="photos" ${n ? '' : 'disabled'}>${icon('pobieranie', 'sm')}Pobierz ${n === picked.photos && n > 1 ? 'wszystkie' : 'zaznaczone'} (${n})</button>`;
+  }
+
+  // Zdjęcia do pamięci telefonu, po kolei; potem jedno okno Udostępnij na wszystkie.
+  async function fetchPhotos() {
+    const ids = [...picked.selected].sort((a, b) => a - b);
+    photoState = { status: 'fetching', done: 0, total: ids.length };
+    renderPhotoAction();
+    const files = [];
+    try {
+      for (const n of ids) {
+        const res = await fetch(photoSrc(n));
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Błąd serwera (${res.status}).`);
+        const blob = await res.blob();
+        const name = res.headers.get('Content-Disposition')?.match(/filename\*=UTF-8''([^;]+)/)?.[1];
+        files.push(new File([blob], name ? decodeURIComponent(name) : `zdjecie ${n + 1}.jpg`, { type: blob.type || 'image/jpeg' }));
+        photoState.done = files.length;
+        renderPhotoAction();
+      }
+      photoState = { status: 'ready', files };
+    } catch (ex) {
+      photoState = { status: 'error', error: ex instanceof TypeError ? 'Przesyłanie przerwane. Sprawdź internet i spróbuj ponownie.' : ex.message };
+    }
+    renderPhotoAction();
+    if (photoState.status === 'ready') $('#dl-photos-act').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  function photosSaved() {
+    const count = photoState.files.length;
+    save(KEY.history, [
+      { url: picked.url, title: picked.title, thumbnail: null, label: `${count} ${pl(count, ['zdjęcie', 'zdjęcia', 'zdjęć'])}`, range: '', date: Date.now() },
+      ...load(KEY.history, []),
+    ].slice(0, HISTORY_MAX));
+    renderHistory();
+    photoState = { status: 'idle' };
+    renderPhotoAction();
+  }
+
+  function savePhotos() {
+    // Od razu w tym dotknięciu, jak przy filmie (Safari: okno Udostępnij tylko ok. 5 s po dotknięciu).
+    const { files } = photoState;
+    if (IOS && navigator.canShare?.({ files })) {
+      if (photoState.sharing) return;
+      photoState.sharing = true;
+      navigator.share({ files }).then(photosSaved, (ex) => {
+        photoState.sharing = false;
+        if (ex.name !== 'AbortError') $('#dl-photos-act').insertAdjacentHTML('beforeend', `<span class="ht-field-error" role="alert">Nie udało się zapisać: ${esc(ex.message)}</span>`);
+      });
+      return;
+    }
+    // Android i komputer: każde zdjęcie jako zwykłe pobranie (przeglądarka może raz zapytać o zgodę).
+    files.forEach((file, i) => setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(file);
+      a.download = file.name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    }, i * 300));
+    photosSaved();
   }
 
   const ext = () => (choice.kind === 'audio' ? choice.format : choice.container);
@@ -571,7 +705,7 @@ function main(el) {
 
     const c = choice;
     const body = {
-      url: info.url, kind: c.kind, height: c.height, container: c.container, format: c.format, bitrate: c.bitrate,
+      url: info.url, item: info.item ?? undefined, kind: c.kind, height: c.height, container: c.container, format: c.format, bitrate: c.bitrate,
       from: a !== null ? formatTime(a) : '', to: b !== null ? formatTime(b) : '', name: $('#dl-name').value,
     };
     const btn = el.querySelector('[data-dl="download"]');
@@ -744,8 +878,18 @@ function main(el) {
     }
   };
   el.onclick = async (e) => {
-    const t = e.target.closest('[data-dl], [data-kind], [data-history]');
+    const t = e.target.closest('[data-dl], [data-kind], [data-history], [data-video], [data-photo]');
     if (!t) return;
+    if (t.dataset.video) return check(Number(t.dataset.video));
+    if (t.dataset.photo) {
+      const n = Number(t.dataset.photo);
+      picked.selected.has(n) ? picked.selected.delete(n) : picked.selected.add(n);
+      t.setAttribute('aria-pressed', picked.selected.has(n));
+      if (photoState.status !== 'fetching') photoState = { status: 'idle' }; // zmiana wyboru: pobierz od nowa
+      const all = el.querySelector('[data-dl="all"]');
+      if (all) all.textContent = `${picked.selected.size ? 'Odznacz' : 'Zaznacz'} wszystkie`;
+      return renderPhotoAction();
+    }
     if (t.dataset.kind) {
       choice.kind = t.dataset.kind;
       el.querySelectorAll('[data-kind]').forEach((b) => b.setAttribute('aria-selected', b === t));
@@ -759,6 +903,16 @@ function main(el) {
     }
     const action = t.dataset.dl;
     if (action === 'download') download();
+    if (action === 'photos') fetchPhotos();
+    if (action === 'photos-save') savePhotos();
+    if (action === 'all') {
+      const selectAll = picked.selected.size === 0;
+      picked.selected = new Set(selectAll ? Array.from({ length: picked.photos }, (_, i) => i) : []);
+      photoState = { status: 'idle' };
+      el.querySelectorAll('[data-photo]').forEach((b) => b.setAttribute('aria-pressed', selectAll));
+      t.textContent = `${selectAll ? 'Odznacz' : 'Zaznacz'} wszystkie`;
+      renderPhotoAction();
+    }
     if (action === 'play') preview?.toggle?.();
     if (action === 'save') saveFile();
     if (action === 'refetch') {

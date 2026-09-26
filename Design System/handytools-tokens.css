@@ -84,6 +84,9 @@
   --ht-dot:        7px;
   --ht-range-thumb: 26px; /* uchwyt suwaka zakresu                          */
   --ht-range-track:  6px; /* tor suwaka zakresu                              */
+  --ht-dim:        0.4;  /* krycie odznaczonego elementu (np. zdjęcie w siatce) */
+  --ht-thumb-inset: 8px; /* odsunięcie znaczników od krawędzi miniatury       */
+  --ht-thumb-mark: 26px; /* kółko zaznaczenia na miniaturze                   */
 
   /* --- ikony: cztery rozmiary, dwie grubości ------------------------------- */
   --ht-i-tile:   30px;  /* kafel                                              */
@@ -681,6 +684,54 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 .ht-playhead:focus-visible { outline: 0; }
 .ht-playhead:focus-visible::-webkit-slider-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
 .ht-playhead:focus-visible::-moz-range-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
+
+/* --- siatka miniatur: elementy posta (zdjęcia do zaznaczenia, filmy do wybrania) ---------- */
+.ht-thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ht-gap); }
+.ht-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--ht-r-lg);
+  overflow: hidden;
+  background: var(--ht-raised);
+  box-shadow: inset 0 0 0 1px var(--ht-line);
+  transition: transform var(--ht-t-press) var(--ht-ease);
+}
+.ht-thumb:active { transform: scale(var(--ht-scale-card)); }
+.ht-thumb > img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity var(--ht-t-state) var(--ht-ease); }
+.ht-thumb[aria-pressed="false"] > img { opacity: var(--ht-dim); }
+/* znacznik zaznaczenia: jasne kółko z ptaszkiem; przy odznaczonym tylko obrys */
+.ht-thumb__check {
+  position: absolute;
+  top: var(--ht-thumb-inset);
+  right: var(--ht-thumb-inset);
+  width: var(--ht-thumb-mark);
+  height: var(--ht-thumb-mark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ht-text);
+  color: var(--ht-bg);
+}
+.ht-thumb[aria-pressed="false"] .ht-thumb__check { background: var(--ht-scrim); color: transparent; box-shadow: inset 0 0 0 var(--ht-focus-w) var(--ht-text); }
+/* film: znaczek odtwarzania i czas na dole (tło: tło ekranu bez przezroczystości) */
+.ht-thumb__badge {
+  position: absolute;
+  left: var(--ht-thumb-inset);
+  bottom: var(--ht-thumb-inset);
+  height: var(--ht-thumb-mark);
+  padding: 0 var(--ht-thumb-inset) 0 calc(var(--ht-thumb-inset) / 2);
+  border-radius: var(--ht-r-xs);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--ht-thumb-inset) / 2);
+  background: var(--ht-scrim-solid);
+  color: var(--ht-text);
+  font-size: var(--ht-fs-label);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ht-thumb[aria-current="true"] { box-shadow: inset 0 0 0 var(--ht-focus-w) var(--ht-text); } /* wybrany film */
 
 /* --- podgląd materiału: odtwarzacz albo stopklatka 16:9 na wgłębieniu -------- */
 .ht-preview {

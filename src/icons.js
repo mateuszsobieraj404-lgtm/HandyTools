@@ -6,7 +6,8 @@ const paths = {
   edytuj: '<path d="M4 16.5v3.5h3.5L18.2 9.3l-3.5-3.5Z"/><path d="M14.7 5.8l3.5 3.5"/>',
   dalej: '<path d="M9.5 5.5l6.5 6.5-6.5 6.5"/>',
   odtworz: '<path d="M7.5 5.2v13.6L18.5 12Z"/>',
-  pauza: '<path d="M8.5 5.5v13"/><path d="M15.5 5.5v13"/>',
+  zaznacz: '<path d="M5.5 12.5l4.2 4.2 8.8-9.4"/>',
+  pauza:'<path d="M8.5 5.5v13"/><path d="M15.5 5.5v13"/>',
   konto:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5a7 7 0 0 1 14 0"/>',
 
   ustawienia: '<path d="M4 7.5h10"/><path d="M18 7.5h2"/><path d="M4 16.5h4"/><path d="M12 16.5h8"/><circle cx="16" cy="7.5" r="2.2"/><circle cx="10" cy="16.5" r="2.2"/>',

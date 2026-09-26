@@ -308,6 +308,8 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 
 **Znacznik pozycji** `.ht-range__head` + `.ht-playhead` - gdzie jest odtwarzanie na suwaku zakresu: pionowa linia na torze i pinezka (nóżka + główka w `--ht-text`) w osobnym pasie pod torem, pole dotyku 44 px. Pinezkę łapie się i przewija cały materiał. Osobny pas, bo leżąc na torze zasłaniałaby uchwyty zakresu. Tylko przy odtwarzaczu (przy stopklatkach ukryty).
 
+**Siatka miniatur** `.ht-thumbs` + `.ht-thumb` - elementy posta (karuzela, pokaz slajdów): 3 kolumny, odstęp `--ht-gap`, kwadratowe miniatury na `--ht-raised`, promień `--ht-r-lg`. Zdjęcie do zaznaczania: `aria-pressed`, w prawym górnym rogu kółko `--ht-thumb-mark` z ptaszkiem (jasne = zaznaczone, sam obrys = odznaczone), odznaczone zdjęcie wygaszone do `--ht-dim`. Film: znaczek ▶ i czas w lewym dolnym rogu na `--ht-scrim-solid`, wybrany film obrysowany `--ht-text` (`aria-current`). Bez akcentu.
+
 **Podgląd** `.ht-preview` - odtwarzacz albo stopklatka w ramce 16:9 na `--ht-recess`, promień `--ht-r-lg`, obraz dopasowany bez przycinania.
 
 **Lista tekstowa** `.ht-list` - pionowa lista bez punktorów, odstęp `--ht-gap`. Każdy element: krótka etykieta `.ht-section` (np. „Nowe”, „Poprawka”) nad opisem `.ht-lead`. Dla treści do czytania (historia zmian), nie do dotykania; lista klikalna to karty.

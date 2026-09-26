@@ -9,19 +9,24 @@ import { createReadStream } from 'node:fs';
 import { appendFile, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { toSeconds } from '../src/time.js';
 
 const PORT = Number(process.env.PORT) || 8787;
 const PASSWORD = process.env.HT_PASSWORD;
 const PYTHON = process.env.HT_PYTHON || 'python';
-// X ukrywa część filmów (treść wrażliwa) przed niezalogowanymi. Dla linków z X bierzemy
-// ciasteczka z przeglądarki, w której jesteś zalogowany na X. Firefox, bo Chrome i Edge
-// szyfrują ciasteczka tak, że yt-dlp ich nie odczyta. Inne serwisy idą bez logowania.
-const X_COOKIES = process.env.HT_X_COOKIES_BROWSER || 'firefox';
-const cookieArgs = (url) => (/^(www\.|mobile\.)?(x|twitter)\.com$/i.test(new URL(url).hostname) ? ['--cookies-from-browser', X_COOKIES] : []);
+// X, Instagram i Reddit ukrywają część treści przed niezalogowanymi (X: treść wrażliwa,
+// Instagram: posty ze zdjęciami, Reddit: prawie wszystko). Dla tych serwisów bierzemy ciasteczka
+// z przeglądarki, w której jesteś zalogowany. Firefox, bo Chrome i Edge szyfrują ciasteczka tak,
+// że yt-dlp i gallery-dl ich nie odczytają. Inne serwisy (np. YouTube) idą bez logowania.
+const COOKIES_BROWSER = process.env.HT_COOKIES_BROWSER || process.env.HT_X_COOKIES_BROWSER || 'firefox';
+const COOKIE_HOSTS = /^(www\.|mobile\.|old\.|m\.)?(x|twitter|instagram|reddit)\.com$/i;
+const cookieArgs = (url) => (COOKIE_HOSTS.test(new URL(url).hostname) ? ['--cookies-from-browser', COOKIES_BROWSER] : []);
 const TMP = path.join(os.tmpdir(), 'handytools');
 const TTL = 60 * 60 * 1000; // plik i podgląd czekają najwyżej godzinę
 const PREVIEW_MAX = 30 * 60; // odtwarzacz podglądu do 30 min materiału, dłuższe: same stopklatki
+const PICKER_MAX = 30; // najwięcej elementów z jednego posta (karuzela, pokaz slajdów, wątek)
+const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp'];
 const LOG = path.join(import.meta.dirname, 'server.log'); // błędy do diagnozy (poza repo)
 
 const CONTAINERS = ['mp4', 'mkv'];
@@ -34,12 +39,14 @@ if (!PASSWORD) {
   process.exit(1);
 }
 
-// Serwisy często coś zmieniają; świeży yt-dlp przy każdym starcie. Bez sieci startujemy na starym.
-console.log('Aktualizuję yt-dlp…');
-spawnSync(PYTHON, ['-m', 'pip', 'install', '-U', '-q', 'yt-dlp'], { stdio: 'inherit' });
+// Serwisy często coś zmieniają; świeży yt-dlp (filmy) i gallery-dl (zdjęcia) przy każdym starcie.
+// Bez sieci startujemy na starych wersjach.
+console.log('Aktualizuję yt-dlp i gallery-dl…');
+spawnSync(PYTHON, ['-m', 'pip', 'install', '-U', '-q', 'yt-dlp', 'gallery-dl'], { stdio: 'inherit' });
 
 const jobs = new Map(); // id → { status, progress, stage, error, file, dir, created }
 const previews = new Map(); // id → { video, frame, created }; źródła podglądu z /info
+const pickers = new Map(); // id → { title, photos: [{ url, ext }], created }; zdjęcia z posta
 
 /* --- pomocnicze ---------------------------------------------------------- */
 
@@ -78,6 +85,9 @@ function explain(stderr) {
   if (/\[twitter\].*(No video could be found|Video #\d+ is unavailable)/i.test(line)) {
     return 'X ukrywa ten film (zwykle treść wrażliwa). Zaloguj się na X w Firefoksie na komputerze i włącz w X: Ustawienia → Prywatność i bezpieczeństwo → Treści, które widzisz → pokazuj treści wrażliwe.';
   }
+  if (/\[Instagram\].*There is no video in this post/i.test(line)) {
+    return 'Instagram pokazuje ten post tylko zalogowanym. Zaloguj się na Instagram w Firefoksie na komputerze i sprawdź jeszcze raz.';
+  }
   if (/DRM/i.test(line)) return 'Ta treść jest zabezpieczona (DRM) i nie da się jej pobrać.';
   if (/private|unavailable|removed|not exist|404/i.test(line)) return 'Materiał jest prywatny, usunięty albo niedostępny.';
   if (/sign in|log ?in|confirm you|cookies/i.test(line)) return 'Serwis wymaga zalogowania. Na razie nieobsługiwane.';
@@ -93,9 +103,11 @@ const TITLE_FIX = ['--replace-in-metadata', 'title', String.raw`^[\d.,]+[KMB]? v
 
 const ytdlp = (args, onLine) => run(PYTHON, ['-m', 'yt_dlp', '--no-playlist', '--no-warnings', ...TITLE_FIX, ...args], onLine);
 
-function run(cmd, args, onLine) {
+function run(cmd, args, onLine, timeoutMs) {
   return new Promise((resolve) => {
     const p = spawn(cmd, args, { windowsHide: true });
+    const timer = timeoutMs && setTimeout(() => p.kill(), timeoutMs);
+    p.on('close', () => clearTimeout(timer));
     let out = '';
     let err = '';
     p.stdout.on('data', (d) => {
@@ -113,17 +125,62 @@ const srcHeaders = (f) => Object.fromEntries(Object.entries(f.http_headers || {}
 
 /* --- /info: tytuł, jakości, rozmiary, podgląd --------------------------------- */
 
-async function info(req, res) {
-  const { url } = await readJson(req);
-  if (!validUrl(url)) return send(res, 400, { error: 'To nie wygląda na link (musi zaczynać się od http).' });
+// Zdjęcia z posta (gallery-dl: Instagram, TikTok, X, Reddit, Pinterest…). Tylko obrazy:
+// filmy i dźwięk bierze yt-dlp. Zwraca { title, site, photos: [{ url, ext }] } albo null.
+async function gallerydl(url) {
+  const { out } = await run(PYTHON, ['-m', 'gallery_dl', ...cookieArgs(url), '-j', '--', url], null, 45_000);
+  let messages;
+  try {
+    messages = JSON.parse(out);
+  } catch {
+    return null;
+  }
+  const photos = messages
+    .filter((m) => m[0] === 3 && IMAGE_EXT.includes(String(m[2]?.extension).toLowerCase()))
+    .slice(0, PICKER_MAX)
+    .map((m) => ({ url: m[1], ext: String(m[2].extension).toLowerCase().replace('jpeg', 'jpg') }));
+  const meta = messages.find((m) => m[0] === 2)?.[1] ?? {};
+  const title = [meta.title, meta.content, meta.description, meta.desc].find((t) => typeof t === 'string' && t.trim());
+  const clean = title?.replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 120); // bez linków z opisu
+  const site = meta.category ? meta.category[0].toUpperCase() + meta.category.slice(1) : ''; // „tiktok” → „Tiktok”
+  return photos.length ? { title: clean, site, photos } : null;
+}
 
-  const { code, out, err } = await ytdlp([...cookieArgs(url), '-J', '--', url]);
-  if (code !== 0) {
-    log('INFO', url, tail(err));
-    return send(res, 422, { error: explain(err) });
+async function info(req, res) {
+  const { url, item } = await readJson(req);
+  if (!validUrl(url)) return send(res, 400, { error: 'To nie wygląda na link (musi zaczynać się od http).' });
+  const n = Number.isInteger(item) && item > 0 ? item : null; // wybrany film z posta z wieloma
+
+  // Filmy (yt-dlp) i zdjęcia (gallery-dl) naraz. --playlist-items tnie długie listy
+  // (np. link do kanału) i wybiera konkretny film z posta.
+  const [yt, gallery] = await Promise.all([
+    ytdlp([...cookieArgs(url), '-J', '--playlist-items', n ? String(n) : `1:${PICKER_MAX}`, '--', url]),
+    n ? null : gallerydl(url),
+  ]);
+  let j = yt.code === 0 ? JSON.parse(yt.out) : null;
+  const entries = j?._type === 'playlist' ? (j.entries || []).filter((e) => e?.formats?.some((f) => f.vcodec && f.vcodec !== 'none')) : null;
+  const hasVideo = (v) => v?.formats?.some((f) => f.vcodec && f.vcodec !== 'none');
+
+  if (!n && (gallery || entries?.length > 1)) {
+    // Post z wieloma elementami: lista do wyboru (filmy po numerze, zdjęcia przez /picker).
+    const videos = entries ?? (hasVideo(j) ? [j] : []);
+    const pickerId = randomUUID();
+    pickers.set(pickerId, { title: gallery?.title || j?.title || 'zdjecie', photos: gallery?.photos ?? [], created: Date.now() });
+    return send(res, 200, {
+      picker: pickerId,
+      url,
+      title: j?.title || gallery?.title || 'Post',
+      site: j?.extractor_key || gallery?.site || '',
+      videos: videos.map((e, i) => ({ item: e.playlist_index ?? i + 1, thumbnail: e.thumbnail, duration: e.duration ?? null, title: e.title })),
+      photos: (gallery?.photos ?? []).length,
+    });
+  }
+  if (entries?.length) j = entries[0]; // jeden film z posta (albo wybrany numerem)
+  if (!j || (n && !hasVideo(j))) {
+    log('INFO', url, n ?? '', tail(yt.err));
+    return send(res, 422, { error: yt.code !== 0 ? explain(yt.err) : 'Nie znalazłem tu filmu ani zdjęć.' });
   }
 
-  const j = JSON.parse(out);
   const formats = j.formats || [];
   const duration = j.duration || null;
   // Rozmiar strumienia: podany przez serwis albo szacowany z bitrate (kb/s → bajty: × 125).
@@ -144,19 +201,20 @@ async function info(req, res) {
   const frameSrc = formats
     .filter((f) => f.url && f.vcodec && f.vcodec !== 'none')
     .sort((a, b) => (plain(b) - plain(a)) || ((a.height ?? 9999) - (b.height ?? 9999)))[0];
-  const hasVideo = formats.some((f) => f.vcodec && f.vcodec !== 'none');
   const previewId = randomUUID();
   previews.set(previewId, {
     id: previewId,
-    url: j.webpage_url || url,
-    video: hasVideo && duration && duration <= PREVIEW_MAX,
+    url: n ? url : j.webpage_url || url,
+    item: n,
+    video: hasVideo(j) && duration && duration <= PREVIEW_MAX,
     file: null, // Promise<ścieżka | null>, tworzona przy pierwszym otwarciu odtwarzacza
     frame: frameSrc && { url: frameSrc.url, headers: srcHeaders(frameSrc) },
     created: Date.now(),
   });
 
   send(res, 200, {
-    url: j.webpage_url || url,
+    url: n ? url : j.webpage_url || url, // film z posta: adres posta + numer
+    item: n,
     title: j.title,
     thumbnail: j.thumbnail,
     duration,
@@ -171,7 +229,7 @@ async function info(req, res) {
 /* --- /jobs: pobranie + obróbka ------------------------------------------------ */
 
 async function createJob(req, res) {
-  const { url, kind, height, container, format, bitrate, from, to, name } = await readJson(req);
+  const { url, item, kind, height, container, format, bitrate, from, to, name } = await readJson(req);
   if (!validUrl(url)) return send(res, 400, { error: 'To nie wygląda na link.' });
   const isAudio = kind === 'audio';
   if (!['video', 'mute', 'audio'].includes(kind) || (isAudio ? !AUDIO.includes(format) : !CONTAINERS.includes(container))) {
@@ -190,6 +248,7 @@ async function createJob(req, res) {
   await mkdir(srcDir, { recursive: true });
 
   const args = ['--newline', '-o', path.join(srcDir, '%(title).150B.%(ext)s')];
+  if (Number.isInteger(item) && item > 0) args.push('--playlist-items', String(item)); // film z posta z wieloma
   if (isAudio) {
     args.push('-f', 'ba/b'); // obróbka do wybranego formatu i bitrate: ffmpeg w finalize()
   } else {
@@ -291,6 +350,22 @@ async function finalize(job, src, { kind, container, format, bitrate, name }) {
   return true;
 }
 
+// Zdjęcie z posta: przez komputer, bo serwisy (np. Instagram) nie wpuszczają obrazów na obce strony.
+async function sendPhoto(res, picker, n) {
+  const photo = picker.photos[n];
+  const upstream = await fetch(photo.url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (!upstream.ok || !upstream.body) return send(res, 502, { error: 'Nie udało się pobrać zdjęcia.' });
+  const name = `${safeName(picker.title).slice(0, 80) || 'zdjecie'} ${n + 1}.${photo.ext}`;
+  const headers = {
+    'Content-Type': upstream.headers.get('content-type') || 'image/jpeg',
+    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}`,
+    'Cache-Control': 'max-age=3600',
+  };
+  if (upstream.headers.get('content-length')) headers['Content-Length'] = upstream.headers.get('content-length');
+  res.writeHead(200, headers);
+  Readable.fromWeb(upstream.body).on('error', () => res.destroy()).pipe(res);
+}
+
 async function sendFile(res, job) {
   const name = path.basename(job.file);
   const { size } = await stat(job.file);
@@ -312,7 +387,8 @@ function previewFile(p) {
     const dir = path.join(TMP, `podglad-${p.id}`);
     await mkdir(dir, { recursive: true });
     const { code, err } = await ytdlp([
-      ...cookieArgs(p.url), '-f', 'b[height<=?480]/bv*[height<=?360]+ba/wv*+ba/w', '-S', 'vcodec:h264,acodec:aac',
+      ...cookieArgs(p.url), ...(p.item ? ['--playlist-items', String(p.item)] : []),
+      '-f', 'b[height<=?480]/bv*[height<=?360]+ba/wv*+ba/w', '-S', 'vcodec:h264,acodec:aac',
       '--merge-output-format', 'mp4', '-o', path.join(dir, 'podglad.%(ext)s'), '--', p.url,
     ]);
     const file = (await readdir(dir).catch(() => [])).find((f) => f.startsWith('podglad.') && !f.endsWith('.part'));
@@ -378,6 +454,7 @@ setInterval(() => {
     previews.delete(id);
     rm(path.join(TMP, `podglad-${id}`), { recursive: true, force: true });
   }
+  for (const [id, p] of pickers) if (Date.now() - p.created > TTL) pickers.delete(id);
 }, 10 * 60 * 1000).unref();
 
 /* --- serwer ---------------------------------------------------------------------- */
@@ -406,6 +483,12 @@ const server = http.createServer(async (req, res) => {
       const job = jobs.get(id);
       if (job?.status !== 'done') return send(res, 404, { error: 'Plik wygasł albo jeszcze się pobiera.' });
       return await sendFile(res, job);
+    }
+    if (req.method === 'GET' && a === 'picker') {
+      const picker = pickers.get(id);
+      const n = Number(sub);
+      if (!picker || !Number.isInteger(n) || !picker.photos[n]) return send(res, 404, { error: 'Zdjęcie wygasło. Sprawdź link jeszcze raz.' });
+      return await sendPhoto(res, picker, n);
     }
     if (req.method === 'GET' && a === 'preview') {
       const p = previews.get(id);

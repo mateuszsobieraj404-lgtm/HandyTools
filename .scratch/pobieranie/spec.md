@@ -72,3 +72,12 @@ Ustalone w rozmowie (grilling), zbudowane:
 - **Nazwa pliku:** pole z tytułem; serwer usuwa znaki niedozwolone, rozszerzenie dopisuje sam.
 - **Rozmiar:** szacunek z danych serwisu (`/info`: `video[{height,size}]`, `audioSize`), proporcjonalnie do fragmentu; audio z bitrate.
 - Serwer: jeden przebieg ffmpeg (`finalize`) robi plik końcowy: format, nazwa, H.264 dla MP4, `-an` dla „bez dźwięku”.
+
+## Wersja 0.5.0: posty z wieloma elementami i zdjęcia (26.09.2026)
+
+- Silnik zdjęć: **gallery-dl** (`python -m gallery_dl -j`), obok yt-dlp; oba aktualizowane przy starcie serwera. Własnych modułów jak w cobalt nie piszemy (psują się przy zmianach serwisów; licencja AGPL cobalt).
+- `/info` bez `item`: yt-dlp (filmy, `--playlist-items 1:30`) i gallery-dl (obrazy) równolegle. Pojedynczy film bez zdjęć → jak dotąd. Wiele filmów albo zdjęcia → `{ picker, videos[{item, thumbnail, duration}], photos: N }`.
+- Film z posta: `/info` i `/jobs` z `item` → `--playlist-items N`.
+- Zdjęcia przez serwer: `GET /picker/:id/:n` (losowy id, 1 h), bo serwisy nie wpuszczają obrazów na obce strony.
+- UI: siatka `.ht-thumbs`; zdjęcia zaznaczane (domyślnie wszystkie), „Pobierz zaznaczone” → do pamięci → „Zapisz (N)” → jedno okno Udostępnij. Film → zwykły panel.
+- Logowanie z Firefoksa: X, Instagram, Reddit (`COOKIE_HOSTS`).
