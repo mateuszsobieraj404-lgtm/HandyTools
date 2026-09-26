@@ -284,7 +284,8 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
    =========================================================================== */
 
 .ht-tile__face, .ht-tile-label, .ht-card, .ht-card-sm, .ht-card-action, .ht-avatar, .ht-icon-btn,
-.ht-btn, .ht-btn-text, .ht-chip, .ht-segmented button, .ht-bar__item, .ht-bar__icon {
+.ht-btn, .ht-btn-text, .ht-chip, .ht-segmented button, .ht-bar__item, .ht-bar__icon,
+.ht-option, .ht-choice, .ht-filename, .ht-option .ht-well {
   transition: background-color var(--ht-t-state) var(--ht-ease),
               border-color     var(--ht-t-state) var(--ht-ease),
               color            var(--ht-t-state) var(--ht-ease),
@@ -684,6 +685,98 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 .ht-playhead:focus-visible { outline: 0; }
 .ht-playhead:focus-visible::-webkit-slider-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
 .ht-playhead:focus-visible::-moz-range-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
+
+/* --- panel wyboru (np. po sprawdzeniu linku w Pobieraczku) ----------------------------
+   .ht-stack: kolumna bloków z odstępem sekcji; .ht-group: nagłówek + zawartość z odstępem w sekcji. */
+.ht-stack { display: flex; flex-direction: column; gap: var(--ht-gap-section); }
+.ht-group { display: flex; flex-direction: column; gap: var(--ht-gap); margin: 0; }
+.ht-group > h3, .ht-group .ht-section-head h3 { margin: 0; }
+
+/* Główny materiał: podgląd na całą szerokość, pod nim tytuł (najwyżej 2 linie) i opis. */
+.ht-media { display: flex; flex-direction: column; gap: var(--ht-gap); }
+.ht-media__text { display: flex; flex-direction: column; gap: var(--ht-gap-label); }
+.ht-media__title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+
+/* Od / ▶ / Do w jednym rzędzie; przycisk kwadratowy o wysokości pola. */
+.ht-trim { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: var(--ht-gap); }
+.ht-trim__play { width: var(--ht-control); padding: 0; }
+
+/* Kafle wyboru (np. Wideo / Bez dźwięku / Audio): kontrolka na --ht-surface, wybrany --ht-press.
+   Ikona w studzience świeci akcentem tylko w wybranym kaflu (rola „ikona w studzience”). */
+.ht-options { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--ht-gap); }
+.ht-option {
+  box-sizing: border-box;
+  height: var(--ht-action);    /* jak karta akcji: studzienka + etykieta do 2 linii */
+  padding: var(--ht-pad-card);
+  border-radius: var(--ht-r-lg);
+  background: var(--ht-surface);
+  border: 1px solid var(--ht-line);
+  color: var(--ht-muted);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  text-align: left;
+}
+.ht-option__label { font-size: var(--ht-fs-section); font-weight: 600; line-height: var(--ht-lh-label); }
+.ht-option:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); color: var(--ht-text); }
+.ht-option:active { transform: scale(var(--ht-scale-card)); }
+.ht-option[aria-pressed="true"] { background: var(--ht-press); border-color: var(--ht-line-strong); color: var(--ht-text); }
+.ht-option[aria-pressed="false"] .ht-well { color: var(--ht-faint); }
+
+/* Pigułki wyboru z podpisem (np. 720p / 22 MB): przewijany rząd od krawędzi do krawędzi ekranu. */
+.ht-choices {
+  display: flex;
+  gap: var(--ht-gap);
+  margin: 0 calc(-1 * var(--ht-gutter));
+  padding: 0 var(--ht-gutter);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding: 0 var(--ht-gutter);
+  scrollbar-width: none;
+}
+.ht-choices::-webkit-scrollbar { display: none; }
+.ht-choice {
+  box-sizing: border-box;
+  flex: none;
+  min-width: var(--ht-tile);
+  height: var(--ht-control);
+  padding: 0 var(--ht-pad-card);
+  border-radius: var(--ht-r-md);
+  background: var(--ht-surface);
+  border: 1px solid var(--ht-line);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+  scroll-snap-align: start;
+}
+.ht-choice__label { font-size: var(--ht-fs-section); font-weight: 600; line-height: var(--ht-lh-label); color: var(--ht-label); }
+.ht-choice__sub { font-size: var(--ht-fs-label); line-height: var(--ht-lh-label); color: var(--ht-muted); font-variant-numeric: tabular-nums; }
+.ht-choice__sub:empty { display: none; }
+.ht-choice:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); }
+.ht-choice:active { transform: scale(var(--ht-scale-sm)); }
+.ht-choice[aria-pressed="true"] { background: var(--ht-press); border-color: var(--ht-line-strong); }
+.ht-choice[aria-pressed="true"] .ht-choice__label { color: var(--ht-text); }
+
+/* Wiersz z nazwą pliku: dotknięcie zamienia go w pole (jak pole, ale z ołówkiem). */
+.ht-filename {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--ht-control);
+  padding: 0 16px;
+  border-radius: var(--ht-r-md);
+  background: var(--ht-surface);
+  border: 1px solid var(--ht-line);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ht-faint);
+  text-align: left;
+}
+.ht-filename__name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ht-fs-body); color: var(--ht-text); }
+.ht-filename:hover { background: var(--ht-hover); border-color: var(--ht-line-strong); color: var(--ht-text); }
 
 /* --- siatka miniatur: elementy posta (zdjęcia do zaznaczenia, filmy do wybrania) ---------- */
 .ht-thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ht-gap); }

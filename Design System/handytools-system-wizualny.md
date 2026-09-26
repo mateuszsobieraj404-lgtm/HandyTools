@@ -308,6 +308,12 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 
 **Znacznik pozycji** `.ht-range__head` + `.ht-playhead` - gdzie jest odtwarzanie na suwaku zakresu: pionowa linia na torze i pinezka (nóżka + główka w `--ht-text`) w osobnym pasie pod torem, pole dotyku 44 px. Pinezkę łapie się i przewija cały materiał. Osobny pas, bo leżąc na torze zasłaniałaby uchwyty zakresu. Tylko przy odtwarzaczu (przy stopklatkach ukryty).
 
+**Panel wyboru** (np. po sprawdzeniu linku). `.ht-stack` układa bloki z odstępem `--ht-gap-section`, `.ht-group` to nagłówek `.ht-section` + zawartość z odstępem `--ht-gap`. Na górze `.ht-media`: podgląd na całą szerokość, pod nim tytuł `.ht-title` (najwyżej 2 linie) i opis. Wybory nie są rozwijanymi listami, tylko:
+- **Kafle wyboru** `.ht-option` (2–3 w rzędzie, `aria-pressed`): wysokość karty akcji (112 px, etykieta do 2 linii), `--ht-surface`, wybrany `--ht-press`. Ikona w studzience świeci akcentem tylko w wybranym kaflu, w pozostałych jest `--ht-faint`.
+- **Pigułki wyboru** `.ht-choice` w przewijanym rzędzie `.ht-choices` (od krawędzi do krawędzi ekranu, przyciąganie): etykieta 13.5/600 + podpis 12.5 (np. rozmiar pliku dla tej opcji). Wybrana `--ht-press`.
+- **Wiersz nazwy** `.ht-filename`: wygląda jak pole z ołówkiem, dotknięcie zamienia go w pole.
+- **Rząd fragmentu** `.ht-trim`: pole Od, kwadratowy przycisk ▶, pole Do.
+
 **Siatka miniatur** `.ht-thumbs` + `.ht-thumb` - elementy posta (karuzela, pokaz slajdów): 3 kolumny, odstęp `--ht-gap`, kwadratowe miniatury na `--ht-raised`, promień `--ht-r-lg`. Zdjęcie do zaznaczania: `aria-pressed`, w prawym górnym rogu kółko `--ht-thumb-mark` z ptaszkiem (jasne = zaznaczone, sam obrys = odznaczone), odznaczone zdjęcie wygaszone do `--ht-dim`. Film: znaczek ▶ i czas w lewym dolnym rogu na `--ht-scrim-solid`, wybrany film obrysowany `--ht-text` (`aria-current`). Bez akcentu.
 
 **Podgląd** `.ht-preview` - odtwarzacz albo stopklatka w ramce 16:9 na `--ht-recess`, promień `--ht-r-lg`, obraz dopasowany bez przycinania.

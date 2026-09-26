@@ -10,7 +10,7 @@ Pobiera wideo, dźwięk i zdjęcia z linku. Obsługuje około 1800 serwisów, m.
 
 - Wklejanie linku jednym dotknięciem, podgląd tytułu, miniatury i czasu trwania.
 - Trzy rodzaje pliku: wideo, wideo bez dźwięku, sam dźwięk.
-- Formaty wideo MP4 i MKV, audio MP3, M4A, FLAC i WAV, z wyborem jakości i bitrate.
+- Formaty wideo MP4 i MKV, audio MP3, M4A, FLAC i WAV, z wyborem jakości i bitrate. Przy każdej opcji widać rozmiar pliku.
 - Wycinanie fragmentu suwakiem, z podglądem i znacznikiem pozycji.
 - Posty z wieloma elementami (karuzele, pokazy slajdów): wybór filmów i zapis wielu zdjęć naraz.
 - Własna nazwa pliku, szacowany rozmiar, historia ostatnich pobrań.

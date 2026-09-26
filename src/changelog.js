@@ -3,6 +3,18 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.6.0',
+    date: '2026-09-26',
+    title: 'Nowy panel Pobieraczka',
+    items: [
+      ['Zmiana', 'Panel po sprawdzeniu linku ma nowy układ: duży podgląd z tytułem na górze, a pod nim wyraźne grupy Fragment, Co pobrać, Jakość, Format i Plik.'],
+      ['Nowe', 'Wideo, Bez dźwięku i Audio to kafle z ikonami. Wybrany świeci na czerwono.'],
+      ['Nowe', 'Jakość, format i bitrate wybierasz pigułkami zamiast list, a pod każdą widać rozmiar pliku dla tej opcji.'],
+      ['Nowe', 'Przycisk „Pobierz” pokazuje rozmiar pliku, a nagłówek „Fragment” pokazuje, ile wybrano.'],
+      ['Zmiana', 'Odtwarzanie fragmentu to przycisk ▶ między polami Od i Do. Nazwę pliku zmieniasz dotknięciem wiersza z ołówkiem.'],
+    ],
+  },
+  {
     version: '0.5.2',
     date: '2026-09-26',
     title: 'Home na pasku',

@@ -19,6 +19,7 @@ const AUDIO_FORMATS = { mp3: 'MP3', m4a: 'M4A', flac: 'FLAC (bezstratny)', wav: 
 const QUALITIES = ['best', 2160, 1440, 1080, 720, 480, 360];
 const BITRATES = [320, 256, 192, 128];
 const LOSSY = ['mp3', 'm4a']; // tylko tu bitrate ma znaczenie
+const AUDIO = Object.keys(AUDIO_FORMATS);
 const DEFAULT_PREFS = { videoFormat: 'mp4', videoQuality: 'best', audioFormat: 'mp3', audioBitrate: 256 };
 
 const load = (k, fallback) => {
@@ -261,6 +262,7 @@ function main(el) {
   let info = null; // wynik /info dla bieżącego linku
   let choice = null; // { kind, height, container, format, bitrate }
   let sel = null; // wybrany fragment w sekundach: { from, to, max }
+  let fileName = ''; // nazwa pliku (domyślnie tytuł), edytowana w grupie „Plik”
   let picked = null; // post z wieloma elementami: { picker, url, title, site, videos, photos, selected, activeVideo }
   let photoState = { status: 'idle' }; // zdjęcia: idle → fetching (done/total) → ready (files) | error
 
@@ -305,7 +307,7 @@ function main(el) {
       $('#dl-picker').hidden = true;
     }
     result.hidden = false;
-    result.innerHTML = '<div class="ht-card ht-skeleton" style="height:var(--ht-tile)" role="status" aria-label="Sprawdzam link"></div>';
+    result.innerHTML = '<div class="ht-preview ht-skeleton" role="status" aria-label="Sprawdzam link"></div>';
     if (item) result.scrollIntoView({ block: 'start', behavior: 'smooth' });
     $('#dl-check').disabled = true;
     try {
@@ -455,69 +457,105 @@ function main(el) {
 
   const ext = () => (choice.kind === 'audio' ? choice.format : choice.container);
 
+  // Panel po sprawdzeniu linku: podgląd z tytułem, potem grupy Fragment / Co pobrać / Jakość / Format / Plik.
+  // Wybory to kafle i pigułki (widać naraz wybór i jego rozmiar), nie rozwijane listy.
+  const KINDS = [['video', 'Wideo', 'wideo'], ['mute', 'Bez dźwięku', 'bezdzwieku'], ['audio', 'Audio', 'audio']];
+
   function renderResult() {
     const meta = [info.site, info.duration && formatTime(info.duration)].filter(Boolean).join(' · ');
     const dur = sel?.max;
+    fileName = info.title;
+    result.classList.add("ht-stagger", "ht-stack"); // grupy wjeżdżają po kolei, w kolejności czytania
+    result.style.setProperty('--start', '0ms');
     result.innerHTML = `
-      <div class="ht-card">
-        <span class="ht-well">${info.thumbnail ? `<img src="${esc(info.thumbnail)}" alt="" referrerpolicy="no-referrer">` : icon('pobieranie', 'md')}</span>
-        <span class="ht-card__text"><span class="ht-card-title">${esc(info.title)}</span><span class="ht-caption">${esc(meta)}</span></span>
-      </div>
-      <div id="dl-preview-box"></div>
-      ${sel ? `
-      <div>
-        <div class="ht-range" id="dl-range">
-          <div class="ht-range__track"><div class="ht-range__fill"></div></div>
-          <div class="ht-range__head" hidden></div>
-          <input type="range" id="dl-rfrom" min="0" max="${dur}" step="1" value="0" aria-label="Początek fragmentu">
-          <input type="range" id="dl-rto" min="0" max="${dur}" step="1" value="${dur}" aria-label="Koniec fragmentu">
-        </div>
-        <input type="range" class="ht-playhead" id="dl-head" min="0" max="${dur}" step="0.1" value="0" aria-label="Pozycja odtwarzania" hidden>
-      </div>` : ''}
-      <div class="ht-pair">
-        <div class="ht-field-group">
-          <label class="ht-field-label" for="dl-from">Od</label>
-          <input class="ht-field" id="dl-from" type="text" autocomplete="off" placeholder="0:00">
-        </div>
-        <div class="ht-field-group">
-          <label class="ht-field-label" for="dl-to">Do</label>
-          <input class="ht-field" id="dl-to" type="text" autocomplete="off" placeholder="${info.duration ? formatTime(info.duration) : 'koniec'}">
+      <div class="ht-media" style="--i:0">
+        <div id="dl-preview-box"></div>
+        <div class="ht-media__text">
+          <h2 class="ht-title ht-media__title">${esc(info.title)}</h2>
+          <span class="ht-caption">${esc(meta)}</span>
         </div>
       </div>
-      <span class="ht-field-error" id="dl-trim-err" role="alert" hidden></span>
+
+      <section class="ht-group" style="--i:1" aria-labelledby="dl-g-frag">
+        <div class="ht-section-head">
+          <h3 class="ht-section" id="dl-g-frag">Fragment</h3>
+          <span class="ht-meta" id="dl-frag-meta"></span>
+        </div>
+        ${sel ? `
+        <div>
+          <div class="ht-range" id="dl-range">
+            <div class="ht-range__track"><div class="ht-range__fill"></div></div>
+            <div class="ht-range__head" hidden></div>
+            <input type="range" id="dl-rfrom" min="0" max="${dur}" step="1" value="0" aria-label="Początek fragmentu">
+            <input type="range" id="dl-rto" min="0" max="${dur}" step="1" value="${dur}" aria-label="Koniec fragmentu">
+          </div>
+          <input type="range" class="ht-playhead" id="dl-head" min="0" max="${dur}" step="0.1" value="0" aria-label="Pozycja odtwarzania" hidden>
+        </div>` : ''}
+        <div class="ht-trim">
+          <div class="ht-field-group">
+            <label class="ht-field-label" for="dl-from">Od</label>
+            <input class="ht-field" id="dl-from" type="text" autocomplete="off" placeholder="0:00">
+          </div>
+          <button type="button" class="ht-btn ht-btn--secondary ht-trim__play" data-dl="play" aria-label="Odtwórz fragment" hidden>${icon('odtworz', 'sm')}</button>
+          <div class="ht-field-group">
+            <label class="ht-field-label" for="dl-to">Do</label>
+            <input class="ht-field" id="dl-to" type="text" autocomplete="off" placeholder="${info.duration ? formatTime(info.duration) : 'koniec'}">
+          </div>
+        </div>
+        <span class="ht-field-error" id="dl-trim-err" role="alert" hidden></span>
+      </section>
+
       ${info.heights.length ? `
-      <div class="ht-segmented" role="tablist" aria-label="Rodzaj pliku">
-        ${[['video', 'Wideo'], ['mute', 'Bez dźwięku'], ['audio', 'Audio']].map(([k, label]) =>
-          `<button type="button" class="ht-hit" role="tab" data-kind="${k}" aria-selected="${choice.kind === k}">${label}</button>`).join('')}
-      </div>` : ''}
-      <div class="ht-pair" id="dl-opts"></div>
-      <div class="ht-field-group">
-        <label class="ht-field-label" for="dl-name">Nazwa pliku</label>
-        <div class="ht-field-wrap">
-          <input class="ht-field" id="dl-name" type="text" autocomplete="off" value="${esc(info.title)}" style="padding-right:84px">
-          <span class="ht-field__action ht-meta" id="dl-ext" style="display:flex; align-items:center; pointer-events:none"></span>
+      <section class="ht-group" style="--i:2" aria-labelledby="dl-g-kind">
+        <h3 class="ht-section" id="dl-g-kind">Co pobrać</h3>
+        <div class="ht-options" role="group" aria-labelledby="dl-g-kind">
+          ${KINDS.map(([k, label, ic]) => `
+            <button type="button" class="ht-option" data-kind="${k}" aria-pressed="${choice.kind === k}">
+              <span class="ht-well">${icon(ic, 'md')}</span>
+              <span class="ht-option__label">${label}</span>
+            </button>`).join('')}
         </div>
-      </div>
-      <span class="ht-meta" id="dl-size" role="status"></span>
-      <button type="button" class="ht-btn ht-btn--primary" data-dl="download" ${load(KEY.job, null) ? 'disabled' : ''}>${icon('pobieranie', 'sm')}Pobierz</button>`;
+      </section>` : ''}
+
+      <div id="dl-opts" class="ht-stack" style="--i:3"></div>
+
+      <section class="ht-group" style="--i:4" aria-labelledby="dl-g-file">
+        <h3 class="ht-section" id="dl-g-file">Plik</h3>
+        <div id="dl-name-box">
+          <button type="button" class="ht-filename" data-dl="rename" aria-label="Zmień nazwę pliku">
+            <span class="ht-filename__name" id="dl-name-text">${esc(fileName)}</span>
+            <span class="ht-meta" id="dl-ext"></span>
+            ${icon('edytuj', 'sm')}
+          </button>
+        </div>
+      </section>
+
+      <button type="button" class="ht-btn ht-btn--primary" style="--i:5" data-dl="download" ${load(KEY.job, null) ? 'disabled' : ''}>${icon('pobieranie', 'sm')}<span id="dl-cta">Pobierz</span></button>`;
     renderOptions();
     renderPreview();
     syncRange();
   }
 
-  // Selekty zależne od rodzaju: jakość + format (wideo) albo format + bitrate (audio).
+  // Pigułki zależne od rodzaju: jakość + format (wideo) albo format + bitrate (audio).
+  // `data-size` mówi, którą opcję wstawić do szacunku rozmiaru (updateSize), `data-note` to podpis bez rozmiaru.
   function renderOptions() {
-    const select = (id, label, entries, value) => `
-      <div class="ht-field-group">
-        <label class="ht-field-label" for="${id}">${label}</label>
-        <select class="ht-field" id="${id}">${options(entries, value)}</select>
-      </div>`;
-    const short = { mp4: 'MP4', mkv: 'MKV' };
-    $('#dl-opts').innerHTML = choice.kind === 'audio'
-      ? select('dl-format', 'Format', Object.entries(AUDIO_FORMATS).map(([v, l]) => [v, l.replace(' (bezstratny)', '')]), choice.format)
-        + (LOSSY.includes(choice.format) ? select('dl-bitrate', 'Bitrate', BITRATES.map((b) => [b, `${b} kb/s`]), choice.bitrate) : '')
-      : select('dl-quality', 'Jakość', info.heights.map((h) => [h, `${h}p`]), choice.height)
-        + select('dl-container', 'Format', Object.entries(short), choice.container);
+    const group = (title, field, items) => `
+      <section class="ht-group" aria-label="${title}">
+        <h3 class="ht-section">${title}</h3>
+        <div class="ht-choices" role="group" aria-label="${title}">
+          ${items.map(([value, label, size, note]) => `
+            <button type="button" class="ht-choice" data-choice="${field}" data-value="${value}" aria-pressed="${String(choice[field]) === String(value)}">
+              <span class="ht-choice__label">${label}</span>
+              <span class="ht-choice__sub"${size ? ` data-size='${JSON.stringify(size)}'` : ''}>${note ?? ''}</span>
+            </button>`).join('')}
+        </div>
+      </section>`;
+    const html = choice.kind === 'audio'
+      ? group('Format', 'format', AUDIO.map((f) => [f, f.toUpperCase(), { format: f }]))
+        + (LOSSY.includes(choice.format) ? group('Bitrate', 'bitrate', BITRATES.map((b) => [b, `${b} kb/s`, { bitrate: b }])) : '')
+      : group('Jakość', 'height', info.heights.map((h) => [h, `${h}p`, { height: h }]))
+        + group('Format', 'container', [['mp4', 'MP4', null, 'do Zdjęć'], ['mkv', 'MKV', null, 'do Plików']]);
+    $('#dl-opts').innerHTML = html;
     $('#dl-ext').textContent = `.${ext()}`;
     updateSize();
   }
@@ -575,8 +613,10 @@ function main(el) {
     const box = $('#dl-preview-box');
     const p = info.preview;
     const src = (path) => `${base()}/preview/${p.id}/${path}`;
+    // Bez podglądu (np. sam dźwięk albo brak czasu trwania): sama miniatura, jeśli jest.
+    const thumbOnly = () => (info.thumbnail ? `<div class="ht-preview"><img src="${esc(info.thumbnail)}" alt="" referrerpolicy="no-referrer"></div>` : '');
     preview = null;
-    if (!sel || !p) return (box.innerHTML = '');
+    if (!sel || !p) return (box.innerHTML = thumbOnly());
 
     // Znacznik pozycji (linia na torze + pinezka pod nim) ma sens tylko przy odtwarzaczu.
     const headInput = $('#dl-head');
@@ -587,9 +627,11 @@ function main(el) {
     };
     showHead(false);
 
+    const playBtn = el.querySelector('[data-dl="play"]');
     const frames = () => {
       showHead(false);
-      if (!p.frames) return (box.innerHTML = '');
+      playBtn.hidden = true;
+      if (!p.frames) return (box.innerHTML = thumbOnly());
       box.innerHTML = `
         <div class="ht-pair">
           ${['from', 'to'].map((w) => `
@@ -608,14 +650,13 @@ function main(el) {
     };
 
     if (!p.video) return frames();
-    box.innerHTML = `
-      <div class="ht-field-group">
-        <div class="ht-preview"><video id="dl-video" playsinline preload="metadata" poster="${esc(info.thumbnail ?? '')}" src="${src('video')}"></video></div>
-        <button type="button" class="ht-btn ht-btn--secondary" data-dl="play">${icon('odtworz', 'sm')}Odtwórz fragment</button>
-      </div>`;
+    box.innerHTML = `<div class="ht-preview"><video id="dl-video" playsinline preload="metadata" poster="${esc(info.thumbnail ?? '')}" src="${src('video')}"></video></div>`;
     const video = $('#dl-video');
-    const btn = el.querySelector('[data-dl="play"]');
-    const label = (playing) => (btn.innerHTML = `${icon(playing ? 'pauza' : 'odtworz', 'sm')}${playing ? 'Zatrzymaj' : 'Odtwórz fragment'}`);
+    playBtn.hidden = false;
+    const label = (playing) => {
+      playBtn.innerHTML = icon(playing ? 'pauza' : 'odtworz', 'sm');
+      playBtn.setAttribute('aria-label', playing ? 'Zatrzymaj' : 'Odtwórz fragment');
+    };
     const range = $('#dl-range');
     let scrubbing = false; // palec na pinezce: pozycję ustawia palec, nie odtwarzacz
     let pending = null; // przewinięcie zlecone, zanim odtwarzacz poznał długość filmu
@@ -677,20 +718,28 @@ function main(el) {
   }
 
   /* rozmiar: szacunek z danych serwisu, proporcjonalnie do fragmentu */
-  function updateSize() {
-    const box = $('#dl-size');
-    if (!box || !choice) return;
+  function bytesFor(o) {
     const d = info.duration;
+    if (!d) return null;
+    if (o.kind === 'audio') return { mp3: o.bitrate, m4a: o.bitrate, flac: 900, wav: 1411 }[o.format] * 125 * d; // kb/s → bajty
+    const v = info.video.find((x) => x.height === o.height)?.size;
+    return v == null ? null : v + (o.kind === 'video' ? info.audioSize ?? 0 : 0);
+  }
+
+  // Rozmiar pod każdą pigułką (ta opcja przy reszcie wyborów bez zmian), na przycisku i długość fragmentu.
+  function updateSize() {
+    if (!choice || !$('#dl-cta')) return;
     const part = sel ? (sel.to - sel.from) / sel.max : 1;
-    let bytes = null;
-    if (d && choice.kind === 'audio') {
-      const kbps = { mp3: choice.bitrate, m4a: choice.bitrate, flac: 900, wav: 1411 }[choice.format];
-      bytes = kbps * 125 * d; // kb/s → bajty
-    } else if (d) {
-      const v = info.video.find((x) => x.height === choice.height)?.size;
-      if (v != null) bytes = v + (choice.kind === 'video' ? info.audioSize ?? 0 : 0);
+    el.querySelectorAll('[data-size]').forEach((s) => {
+      const bytes = bytesFor({ ...choice, ...JSON.parse(s.dataset.size) });
+      s.textContent = bytes ? formatSize(bytes * part) : '';
+    });
+    const total = bytesFor(choice);
+    $('#dl-cta').textContent = total ? `Pobierz (${formatSize(total * part)})` : 'Pobierz';
+    const fragMeta = $('#dl-frag-meta');
+    if (fragMeta && sel) {
+      fragMeta.textContent = sel.from === 0 && sel.to === sel.max ? 'Cały materiał' : `${formatTime(sel.to - sel.from)} z ${formatTime(sel.max)}`;
     }
-    box.textContent = bytes ? `Rozmiar: ok. ${formatSize(bytes * part)}` : 'Rozmiar: nieznany';
   }
 
   /* pobieranie */
@@ -706,7 +755,7 @@ function main(el) {
     const c = choice;
     const body = {
       url: info.url, item: info.item ?? undefined, kind: c.kind, height: c.height, container: c.container, format: c.format, bitrate: c.bitrate,
-      from: a !== null ? formatTime(a) : '', to: b !== null ? formatTime(b) : '', name: $('#dl-name').value,
+      from: a !== null ? formatTime(a) : '', to: b !== null ? formatTime(b) : '', name: fileName,
     };
     const btn = el.querySelector('[data-dl="download"]');
     btn.disabled = true;
@@ -716,7 +765,7 @@ function main(el) {
         ? `Audio ${c.format.toUpperCase()}${LOSSY.includes(c.format) ? ` ${c.bitrate} kb/s` : ''}`
         : `${c.kind === 'mute' ? 'Bez dźwięku' : 'Wideo'} ${c.height}p ${c.container.toUpperCase()}`;
       const range = a !== null || b !== null ? `${formatTime(a ?? 0)}–${b !== null ? formatTime(b) : 'koniec'}` : '';
-      const job = { id, status: 'running', url: info.url, title: $('#dl-name').value.trim() || info.title, thumbnail: info.thumbnail, label, range, kind: c.kind, container: c.container };
+      const job = { id, status: 'running', url: info.url, title: fileName.trim() || info.title, thumbnail: info.thumbnail, label, range, kind: c.kind, container: c.container };
       save(KEY.job, job);
       renderJob(job, { status: 'running', progress: 0, stage: 'download' });
       jobBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -860,25 +909,23 @@ function main(el) {
   el.oninput = (e) => {
     if (e.target.id === 'dl-rfrom' || e.target.id === 'dl-rto') onRange(e);
     if (e.target.id === 'dl-from' || e.target.id === 'dl-to') onField(e, false);
+    if (e.target.id === 'dl-name') fileName = e.target.value;
   };
   el.onchange = (e) => {
     const t = e.target;
     if (t.id === 'dl-rfrom' || t.id === 'dl-rto') onRange(e);
     if (t.id === 'dl-from' || t.id === 'dl-to') onField(e, true);
-    if (t.id === 'dl-quality') choice.height = Number(t.value);
-    if (t.id === 'dl-container') choice.container = t.value;
-    if (t.id === 'dl-bitrate') choice.bitrate = Number(t.value);
-    if (t.id === 'dl-format') {
-      choice.format = t.value;
-      renderOptions(); // bitrate tylko dla MP3/M4A
-    }
-    if (['dl-quality', 'dl-container', 'dl-bitrate'].includes(t.id)) {
-      $('#dl-ext').textContent = `.${ext()}`;
-      updateSize();
-    }
   };
   el.onclick = async (e) => {
-    const t = e.target.closest('[data-dl], [data-kind], [data-history], [data-video], [data-photo]');
+    const t = e.target.closest('[data-dl], [data-kind], [data-choice], [data-history], [data-video], [data-photo]');
+    if (t?.dataset.choice) {
+      const field = t.dataset.choice;
+      choice[field] = field === 'height' || field === 'bitrate' ? Number(t.dataset.value) : t.dataset.value;
+      if (field === 'format') return renderOptions(); // bitrate tylko dla MP3/M4A
+      t.parentElement.querySelectorAll('[data-choice]').forEach((b) => b.setAttribute('aria-pressed', b === t));
+      $('#dl-ext').textContent = `.${ext()}`;
+      return updateSize();
+    }
     if (!t) return;
     if (t.dataset.video) return check(Number(t.dataset.video));
     if (t.dataset.photo) {
@@ -892,7 +939,7 @@ function main(el) {
     }
     if (t.dataset.kind) {
       choice.kind = t.dataset.kind;
-      el.querySelectorAll('[data-kind]').forEach((b) => b.setAttribute('aria-selected', b === t));
+      el.querySelectorAll('[data-kind]').forEach((b) => b.setAttribute('aria-pressed', b === t));
       return renderOptions();
     }
     if (t.dataset.history) {
@@ -903,6 +950,18 @@ function main(el) {
     }
     const action = t.dataset.dl;
     if (action === 'download') download();
+    if (action === 'rename') {
+      // Wiersz z nazwą zamienia się w pole; rozszerzenie zostaje z prawej, dopisze się samo.
+      $('#dl-name-box').innerHTML = `
+        <div class="ht-field-wrap">
+          <label class="ht-sr-only" for="dl-name">Nazwa pliku</label>
+          <input class="ht-field" id="dl-name" type="text" autocomplete="off" value="${esc(fileName)}" style="padding-right:84px">
+          <span class="ht-field__action ht-meta" id="dl-ext" style="display:flex; align-items:center; pointer-events:none">.${ext()}</span>
+        </div>`;
+      const f = $('#dl-name');
+      f.focus();
+      f.select();
+    }
     if (action === 'photos') fetchPhotos();
     if (action === 'photos-save') savePhotos();
     if (action === 'all') {

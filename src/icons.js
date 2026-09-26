@@ -6,7 +6,10 @@ const paths = {
   edytuj: '<path d="M4 16.5v3.5h3.5L18.2 9.3l-3.5-3.5Z"/><path d="M14.7 5.8l3.5 3.5"/>',
   dalej: '<path d="M9.5 5.5l6.5 6.5-6.5 6.5"/>',
   odtworz: '<path d="M7.5 5.2v13.6L18.5 12Z"/>',
-  zaznacz: '<path d="M5.5 12.5l4.2 4.2 8.8-9.4"/>',
+  wideo: '<rect x="3.5" y="6.2" width="12.3" height="11.6" rx="2.6"/><path d="m15.8 10.3 4.7-2.8v9l-4.7-2.8"/>',
+  bezdzwieku: '<path d="M4.5 9.6h2.8l4.2-3.6v12l-4.2-3.6H4.5Z"/><path d="m15.6 9.6 4.8 4.8"/><path d="m20.4 9.6-4.8 4.8"/>',
+  audio: '<path d="M9.2 17.6V6.2l9.8-2v11.4"/><circle cx="6.9" cy="17.6" r="2.3"/><circle cx="16.7" cy="15.6" r="2.3"/>',
+  zaznacz:'<path d="M5.5 12.5l4.2 4.2 8.8-9.4"/>',
   pauza:'<path d="M8.5 5.5v13"/><path d="M15.5 5.5v13"/>',
   konto:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5a7 7 0 0 1 14 0"/>',
 
