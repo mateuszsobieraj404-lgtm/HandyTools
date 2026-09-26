@@ -30,8 +30,4 @@ const sections = Object.entries(groups)
   })
   .filter(Boolean);
 
-console.log(`${sections.join('\n\n')}
-
----
-
-Aplikacja: https://mateuszsobieraj404-lgtm.github.io/HandyTools/ · Pełna historia: ekran **Aktualizacje** w aplikacji.`);
+console.log(sections.join('\n\n'));
