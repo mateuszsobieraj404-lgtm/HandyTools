@@ -37,6 +37,8 @@ Pobieranie robi komputer w domu (domowe łącze: YouTube nie blokuje), a telefon
 
 **X, Instagram, Reddit:** część treści widać tylko po zalogowaniu. Zaloguj się w **Firefoksie** na komputerze (najlepiej na zapasowe konto); serwer bierze stamtąd ciasteczka tylko dla tych trzech serwisów. Chrome i Edge szyfrują ciasteczka tak, że nie da się ich odczytać.
 
+**Prywatność:** linki, które wklejasz, idą tylko z telefonu na Twój komputer (tunel szyfrowany do samego komputera). Historia pobrań i ustawienia zostają w pamięci telefonu. Hasło (`server/.env`) jest poza repozytorium, a log błędów z linkami leży poza folderem projektu (`%LOCALAPPDATA%\HandyTools\server.log`). GitHub dostaje tylko kod aplikacji.
+
 **Ograniczenia:** komputer musi być włączony; treści z DRM (Netflix, Spotify, Disney+) nie da się pobrać; iPhone zapisze z aplikacji plik do 200 MB. Pobieraj tylko to, do czego masz prawo: własne materiały albo treści na wolnych licencjach.
 
 ## Rozwój

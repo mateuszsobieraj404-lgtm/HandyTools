@@ -27,7 +27,10 @@ const TTL = 60 * 60 * 1000; // plik i podgląd czekają najwyżej godzinę
 const PREVIEW_MAX = 30 * 60; // odtwarzacz podglądu do 30 min materiału, dłuższe: same stopklatki
 const PICKER_MAX = 30; // najwięcej elementów z jednego posta (karuzela, pokaz slajdów, wątek)
 const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp'];
-const LOG = path.join(import.meta.dirname, 'server.log'); // błędy do diagnozy (poza repo)
+// Log błędów zawiera linki, które pobierasz, więc leży POZA folderem projektu
+// (%LOCALAPPDATA%\HandyTools): żadna komenda gita nie może go wypchnąć do publicznego repo.
+const LOG_DIR = path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), '.local', 'share'), 'HandyTools');
+const LOG = path.join(LOG_DIR, 'server.log');
 
 const CONTAINERS = ['mp4', 'mkv'];
 const AUDIO = ['mp3', 'm4a', 'flac', 'wav'];
@@ -290,7 +293,7 @@ async function createJob(req, res) {
   const ok = await finalize(job, path.join(srcDir, file), { kind, container, format, bitrate: br, name: safeName(name) || fallback });
   if (!ok) {
     job.status = 'error';
-    job.error = 'Nie udało się przygotować pliku. Szczegóły w server/server.log na komputerze.';
+    job.error = 'Nie udało się przygotować pliku. Szczegóły w pliku %LOCALAPPDATA%\\HandyTools\\server.log na komputerze.';
     return;
   }
   rm(srcDir, { recursive: true, force: true });
@@ -522,4 +525,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 await rm(TMP, { recursive: true, force: true }); // resztki po poprzednim uruchomieniu
+await mkdir(LOG_DIR, { recursive: true });
 server.listen(PORT, () => console.log(`HandyTools: serwer pobierania działa na http://localhost:${PORT}`));

@@ -3,6 +3,15 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.5.1',
+    date: '2026-09-26',
+    title: 'Prywatność',
+    items: [
+      ['Zmiana', 'Log błędów serwera (zawiera pobierane linki) leży teraz poza folderem projektu, w %LOCALAPPDATA%\\HandyTools, więc nie może trafić do publicznego repozytorium.'],
+      ['Zmiana', 'Commity w repozytorium podpisane ukrytym adresem e-mail GitHuba zamiast prywatnego.'],
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-09-26',
     title: 'Posty z wieloma elementami i zdjęcia',
