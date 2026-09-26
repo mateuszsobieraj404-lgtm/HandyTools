@@ -306,6 +306,8 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 
 **Suwak zakresu** `.ht-range` - wybór odcinka (np. fragment od-do): dwa natywne `input[type=range]` na jednym torze. Tor `--ht-recess` (wgłębienie, jak tor przełącznika) o grubości `--ht-range-track`, wybrany odcinek `--ht-press`, uchwyty `--ht-range-thumb` w `--ht-text`, pole dotyku 44 px. Bez akcentu: to nie jest żadna z jego ośmiu ról. Pozycje odcinka przez zmienne `--from` i `--to` (0…1). Zawsze z polami tekstowymi obok, żeby dało się wpisać wartość.
 
+**Znacznik pozycji** `.ht-range__head` + `.ht-playhead` - gdzie jest odtwarzanie na suwaku zakresu: pionowa linia na torze i pinezka (nóżka + główka w `--ht-text`) w osobnym pasie pod torem, pole dotyku 44 px. Pinezkę łapie się i przewija cały materiał. Osobny pas, bo leżąc na torze zasłaniałaby uchwyty zakresu. Tylko przy odtwarzaczu (przy stopklatkach ukryty).
+
 **Podgląd** `.ht-preview` - odtwarzacz albo stopklatka w ramce 16:9 na `--ht-recess`, promień `--ht-r-lg`, obraz dopasowany bez przycinania.
 
 **Lista tekstowa** `.ht-list` - pionowa lista bez punktorów, odstęp `--ht-gap`. Każdy element: krótka etykieta `.ht-section` (np. „Nowe”, „Poprawka”) nad opisem `.ht-lead`. Dla treści do czytania (historia zmian), nie do dotykania; lista klikalna to karty.

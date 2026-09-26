@@ -629,6 +629,59 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 .ht-range input:focus-visible::-webkit-slider-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
 .ht-range input:focus-visible::-moz-range-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
 
+/* Znacznik pozycji odtwarzania: linia na torze (.ht-range__head, --head 0…1) i pinezka pod torem
+   (.ht-playhead, osobny input[type=range] na całą długość). Osobny pas, żeby pinezka nie zasłaniała
+   uchwytów zakresu. Ten sam --ht-range-thumb co uchwyty, więc linia i pinezka trafiają w ten sam punkt. */
+.ht-range__head {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--head, 0) * (100% - var(--ht-range-thumb)) + var(--ht-range-thumb) / 2);
+  width: 2px;
+  height: var(--ht-range-thumb);
+  transform: translate(-50%, -50%);
+  border-radius: 1px;
+  background: var(--ht-text);
+  pointer-events: none;
+}
+.ht-playhead {
+  display: block;
+  width: 100%;
+  height: var(--ht-hit);
+  margin: calc(var(--ht-hit) / -2 + var(--ht-range-track)) 0 0; /* pinezka dochodzi do toru */
+  background: none;
+  pointer-events: none;        /* łapie tylko pinezka, nie cały pas (nie wchodzi pod uchwyty zakresu) */
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ht-playhead::-webkit-slider-runnable-track { background: none; height: var(--ht-hit); }
+.ht-playhead::-moz-range-track { background: none; }
+.ht-playhead::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: var(--ht-range-thumb);
+  height: var(--ht-hit);
+  border: 0;
+  /* nóżka od toru + główka pinezki; reszta pola dotyku przezroczysta */
+  background:
+    radial-gradient(circle at 50% 22px, var(--ht-text) 6px, transparent 6.5px),
+    linear-gradient(var(--ht-text), var(--ht-text)) 50% 0 / 2px 18px no-repeat;
+  cursor: grab;
+}
+.ht-playhead::-moz-range-thumb {
+  pointer-events: auto;
+  width: var(--ht-range-thumb);
+  height: var(--ht-hit);
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 50% 22px, var(--ht-text) 6px, transparent 6.5px),
+    linear-gradient(var(--ht-text), var(--ht-text)) 50% 0 / 2px 18px no-repeat;
+  cursor: grab;
+}
+.ht-playhead:focus-visible { outline: 0; }
+.ht-playhead:focus-visible::-webkit-slider-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
+.ht-playhead:focus-visible::-moz-range-thumb { outline: var(--ht-focus-w) solid var(--ht-accent); outline-offset: var(--ht-focus-offset); }
+
 /* --- podgląd materiału: odtwarzacz albo stopklatka 16:9 na wgłębieniu -------- */
 .ht-preview {
   aspect-ratio: 16 / 9;

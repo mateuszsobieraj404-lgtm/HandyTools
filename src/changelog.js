@@ -3,6 +3,15 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.4.1',
+    date: '2026-09-26',
+    title: 'Znacznik pozycji',
+    items: [
+      ['Nowe', 'Pobieraczek: znacznik pozycji na suwaku fragmentu. Linia pokazuje, w którym miejscu jest podgląd, a pinezkę pod suwakiem można złapać i przewijać cały materiał.'],
+      ['Zmiana', '„Odtwórz fragment” gra od pinezki, jeśli stoi w wybranym fragmencie. W przeciwnym razie od „Od”.'],
+    ],
+  },
+  {
     version: '0.4.0',
     date: '2026-09-26',
     title: 'Pobieraczek',

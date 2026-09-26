@@ -331,10 +331,14 @@ function main(el) {
       </div>
       <div id="dl-preview-box"></div>
       ${sel ? `
-      <div class="ht-range" id="dl-range">
-        <div class="ht-range__track"><div class="ht-range__fill"></div></div>
-        <input type="range" id="dl-rfrom" min="0" max="${dur}" step="1" value="0" aria-label="Początek fragmentu">
-        <input type="range" id="dl-rto" min="0" max="${dur}" step="1" value="${dur}" aria-label="Koniec fragmentu">
+      <div>
+        <div class="ht-range" id="dl-range">
+          <div class="ht-range__track"><div class="ht-range__fill"></div></div>
+          <div class="ht-range__head" hidden></div>
+          <input type="range" id="dl-rfrom" min="0" max="${dur}" step="1" value="0" aria-label="Początek fragmentu">
+          <input type="range" id="dl-rto" min="0" max="${dur}" step="1" value="${dur}" aria-label="Koniec fragmentu">
+        </div>
+        <input type="range" class="ht-playhead" id="dl-head" min="0" max="${dur}" step="0.1" value="0" aria-label="Pozycja odtwarzania" hidden>
       </div>` : ''}
       <div class="ht-pair">
         <div class="ht-field-group">
@@ -440,7 +444,17 @@ function main(el) {
     preview = null;
     if (!sel || !p) return (box.innerHTML = '');
 
+    // Znacznik pozycji (linia na torze + pinezka pod nim) ma sens tylko przy odtwarzaczu.
+    const headInput = $('#dl-head');
+    const headLine = $('#dl-range .ht-range__head');
+    const showHead = (on) => {
+      headInput.hidden = !on;
+      headLine.hidden = !on;
+    };
+    showHead(false);
+
     const frames = () => {
+      showHead(false);
       if (!p.frames) return (box.innerHTML = '');
       box.innerHTML = `
         <div class="ht-pair">
@@ -468,14 +482,57 @@ function main(el) {
     const video = $('#dl-video');
     const btn = el.querySelector('[data-dl="play"]');
     const label = (playing) => (btn.innerHTML = `${icon(playing ? 'pauza' : 'odtworz', 'sm')}${playing ? 'Zatrzymaj' : 'Odtwórz fragment'}`);
-    video.onplay = () => label(true);
+    const range = $('#dl-range');
+    let scrubbing = false; // palec na pinezce: pozycję ustawia palec, nie odtwarzacz
+    let pending = null; // przewinięcie zlecone, zanim odtwarzacz poznał długość filmu
+
+    const setHead = (t) => {
+      headInput.value = t;
+      range.style.setProperty('--head', t / sel.max);
+      headInput.setAttribute('aria-valuetext', formatTime(t));
+    };
+    // iPhone często nie wczytuje filmu przed pierwszym dotknięciem „play”: wtedy load() i skok po wczytaniu.
+    const seekTo = (t) => {
+      if (video.readyState >= 1) return (video.currentTime = t);
+      pending = t;
+      if (video.networkState !== 2) video.load(); // 2 = już się wczytuje
+    };
+    // W trakcie grania pozycja płynnie, co klatkę (timeupdate daje tylko ok. 4 razy na sekundę).
+    const follow = () => {
+      if (!scrubbing) setHead(video.currentTime);
+      if (!video.paused) requestAnimationFrame(follow);
+    };
+
+    video.onloadedmetadata = () => {
+      if (pending === null) return;
+      video.currentTime = pending;
+      pending = null;
+    };
+    video.onplay = () => {
+      label(true);
+      requestAnimationFrame(follow);
+    };
     video.onpause = () => label(false);
-    video.ontimeupdate = () => video.currentTime >= sel.to && video.pause();
+    video.ontimeupdate = () => {
+      if (video.currentTime >= sel.to && !video.paused) video.pause();
+      if (!scrubbing) setHead(video.currentTime);
+    };
     video.onerror = frames; // podgląd się nie udał: stopklatki
+    headInput.oninput = () => {
+      scrubbing = true;
+      video.pause();
+      setHead(Number(headInput.value));
+      seekTo(Number(headInput.value));
+    };
+    headInput.onchange = () => (scrubbing = false);
+    showHead(true);
+    setHead(sel.from);
+
     preview = {
       seek(t) {
         video.pause();
-        if (video.readyState >= 1) video.currentTime = t;
+        setHead(t);
+        seekTo(t);
       },
       toggle() {
         if (!video.paused) return video.pause();
@@ -667,12 +724,12 @@ function main(el) {
     check();
   };
   el.oninput = (e) => {
-    if (e.target.type === 'range') onRange(e);
+    if (e.target.id === 'dl-rfrom' || e.target.id === 'dl-rto') onRange(e);
     if (e.target.id === 'dl-from' || e.target.id === 'dl-to') onField(e, false);
   };
   el.onchange = (e) => {
     const t = e.target;
-    if (t.type === 'range') onRange(e);
+    if (t.id === 'dl-rfrom' || t.id === 'dl-rto') onRange(e);
     if (t.id === 'dl-from' || t.id === 'dl-to') onField(e, true);
     if (t.id === 'dl-quality') choice.height = Number(t.value);
     if (t.id === 'dl-container') choice.container = t.value;
