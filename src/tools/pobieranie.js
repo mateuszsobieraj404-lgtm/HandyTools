@@ -291,6 +291,7 @@ function main(el) {
     const local = transfer?.id === job.id ? transfer : null;
     const [value, meta] = server.status === 'error' ? ['Błąd', job.title]
       : server.status === 'running' && server.stage === 'processing' ? ['Łączę pliki', 'Na komputerze']
+      : server.status === 'running' && server.stage === 'convert' ? [`${server.progress}%`, 'Konwertuję do H.264']
       : server.status === 'running' ? [`${server.progress}%`, 'Pobieram na komputer']
       : local?.file ? ['Gotowe', job.title]
       : local?.error ? ['Błąd', job.title]
@@ -310,6 +311,10 @@ function main(el) {
       ${local?.file ? `
         <button type="button" class="ht-btn ht-btn--primary" data-dl="save">${icon('pobieranie', 'sm')}Zapisz</button>
         ${IOS ? `<span class="ht-caption">W oknie Udostępnij wybierz „${isAudio ? 'Zachowaj w Plikach' : 'Zachowaj wideo'}”${isAudio ? '' : ', żeby trafiło do Zdjęć'}.</span>` : ''}` : ''}`;
+    if (local?.file && !local.shown) {
+      local.shown = true; // raz: pokaż „Zapisz”, który mógł zostać pod paskiem
+      jobBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
   }
 
   async function poll() {
@@ -401,9 +406,13 @@ function main(el) {
       // Musi ruszyć od razu w tym dotknięciu: Safari pozwala otworzyć Udostępnij tylko ok. 5 s po nim.
       const { file } = transfer;
       if (IOS && navigator.canShare?.({ files: [file] })) {
-        navigator.share({ files: [file] }).then(finish, (ex) => {
-          if (ex.name !== 'AbortError') showError($('#dl-err'), `Nie udało się zapisać: ${ex.message}`);
-        });
+        if (transfer.sharing) return; // drugie dotknięcie przy otwartym oknie Udostępnij
+        transfer.sharing = true;
+        navigator.share({ files: [file] })
+          .then(finish, (ex) => {
+            if (ex.name !== 'AbortError') jobBox.insertAdjacentHTML('beforeend', `<span class="ht-field-error" role="alert">Nie udało się zapisać: ${esc(ex.message)}</span>`);
+          })
+          .finally(() => transfer && (transfer.sharing = false));
       } else {
         // Android i komputer: zwykłe pobranie pliku z pamięci.
         const a = document.createElement('a');

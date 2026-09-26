@@ -6,7 +6,7 @@ import http from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, rename, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { toSeconds } from '../src/time.js';
@@ -16,6 +16,7 @@ const PASSWORD = process.env.HT_PASSWORD;
 const PYTHON = process.env.HT_PYTHON || 'python';
 const TMP = path.join(os.tmpdir(), 'handytools');
 const JOB_TTL = 60 * 60 * 1000; // plik czeka na odbiór najwyżej godzinę
+const LOG = path.join(import.meta.dirname, 'server.log'); // błędy do diagnozy (poza repo)
 
 if (!PASSWORD) {
   console.error('Brak hasła. Utwórz server/.env z linią HT_PASSWORD=twoje-haslo');
@@ -66,9 +67,17 @@ function explain(stderr) {
   return `Nie udało się: ${line.replace(/^ERROR:\s*/, '').slice(0, 160) || 'nieznany błąd'}`;
 }
 
-function ytdlp(args, onLine) {
+const log = (...parts) => appendFile(LOG, `${new Date().toISOString()} ${parts.join(' ')}\n`).catch(() => {});
+const tail = (stderr) => stderr.trim().split('\n').slice(-3).join(' | ');
+
+// Facebook dokleja do tytułu liczniki: „130K views · 2.8K reactions | Właściwy tytuł”.
+const TITLE_FIX = ['--replace-in-metadata', 'title', String.raw`^[\d.,]+[KMB]? views · [\d.,]+[KMB]? reactions [|｜] `, ''];
+
+const ytdlp = (args, onLine) => run(PYTHON, ['-m', 'yt_dlp', '--no-playlist', '--no-warnings', ...TITLE_FIX, ...args], onLine);
+
+function run(cmd, args, onLine) {
   return new Promise((resolve) => {
-    const p = spawn(PYTHON, ['-m', 'yt_dlp', '--no-playlist', '--no-warnings', ...args], { windowsHide: true });
+    const p = spawn(cmd, args, { windowsHide: true });
     let out = '';
     let err = '';
     p.stdout.on('data', (d) => {
@@ -88,7 +97,10 @@ async function info(req, res) {
   if (!validUrl(url)) return send(res, 400, { error: 'To nie wygląda na link (musi zaczynać się od http).' });
 
   const { code, out, err } = await ytdlp(['-J', '--', url]);
-  if (code !== 0) return send(res, 422, { error: explain(err) });
+  if (code !== 0) {
+    log('INFO', url, tail(err));
+    return send(res, 422, { error: explain(err) });
+  }
 
   const j = JSON.parse(out);
   const heights = [...new Set((j.formats || []).filter((f) => f.height && f.vcodec && f.vcodec !== 'none').map((f) => f.height))];
@@ -120,9 +132,11 @@ async function createJob(req, res) {
 
   const args = ['--newline', '-o', path.join(dir, '%(title).150B.%(ext)s')];
   if (type === 'video') {
-    // Najpierw rozdzielczość, potem H.264/AAC: odtworzy każdy telefon.
-    const cap = Number.isInteger(height) ? `res:${height},` : '';
-    args.push('-S', `${cap}vcodec:h264,acodec:aac`, '--merge-output-format', 'mp4');
+    // -f ogranicza do wybranej wysokości (? = przepuść formaty bez znanej wysokości),
+    // -S wybiera wśród nich: najwyższa rozdzielczość, potem H.264/AAC.
+    const h = Number.isInteger(height) ? height : null;
+    if (h) args.push('-f', `bv*[height<=?${h}]+ba/b[height<=?${h}]/bv*+ba/b`);
+    args.push('-S', `${h ? `res:${h},` : ''}vcodec:h264,acodec:aac`, '--merge-output-format', 'mp4', '--remux-video', 'mp4');
   } else {
     args.push('-f', 'ba/b', '-x', '--audio-format', format, '--audio-quality', '0');
   }
@@ -149,13 +163,48 @@ async function createJob(req, res) {
   const files = await readdir(dir).catch(() => []);
   const file = files.find((f) => !f.endsWith('.part') && !f.endsWith('.ytdl'));
   if (code !== 0 || !file) {
+    log('JOB', url, tail(err));
     job.status = 'error';
     job.error = code !== 0 ? explain(err) : 'Pobieranie nie zwróciło pliku.';
     return;
   }
+  job.file = path.join(dir, file);
+  if (type === 'video' && !(await toPhoneCodec(job))) {
+    job.status = 'error';
+    job.error = 'Nie udało się przekonwertować wideo. Szczegóły w server/server.log na komputerze.';
+    return;
+  }
   job.status = 'done';
   job.progress = 100;
-  job.file = path.join(dir, file);
+}
+
+// iPhone zapisze do Zdjęć tylko H.264 albo HEVC. Facebook i część serwisów daje wyłącznie
+// VP9/AV1, więc takie wideo przekodowujemy na komputerze (ffmpeg, libx264).
+async function toPhoneCodec(job) {
+  const probe = await run('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name:format=duration', '-of', 'json', job.file]);
+  const info = JSON.parse(probe.out || '{}');
+  const codec = info.streams?.[0]?.codec_name;
+  if (!codec || ['h264', 'hevc'].includes(codec)) return true;
+
+  const duration = Number(info.format?.duration) || 0;
+  const out = path.join(path.dirname(job.file), `h264-${path.basename(job.file)}`);
+  job.stage = 'convert';
+  job.progress = 0;
+  const { code, err } = await run('ffmpeg', [
+    '-y', '-v', 'error', '-nostats', '-progress', 'pipe:1', '-i', job.file,
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '22', '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out,
+  ], (line) => {
+    const us = line.match(/^out_time_us=(\d+)/); // mikrosekundy → procent czasu trwania
+    if (us && duration) job.progress = Math.min(99, Math.floor(Number(us[1]) / 1e4 / duration));
+  });
+  if (code !== 0) {
+    log('CONVERT', job.file, codec, tail(err));
+    return false;
+  }
+  await rm(job.file);
+  await rename(out, job.file);
+  return true;
 }
 
 async function sendFile(res, job) {
