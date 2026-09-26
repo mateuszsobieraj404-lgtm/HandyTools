@@ -1,0 +1,32 @@
+# Nowa wersja na górze src/changelog.js → GitHub Release z notatkami z changeloga.
+# Istniejący release dla tej wersji: nic nie robi (push bez nowej wersji jest bezpieczny).
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [src/changelog.js]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Utwórz release, jeśli go jeszcze nie ma
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(node scripts/release-notes.mjs --latest)
+          if gh release view "v$V" >/dev/null 2>&1; then
+            echo "v$V już istnieje"
+            exit 0
+          fi
+          node scripts/release-notes.mjs "$V" > notes.md
+          gh release create "v$V" --target "$GITHUB_SHA" --title "$(node scripts/release-notes.mjs "$V" --title)" --notes-file notes.md --latest
