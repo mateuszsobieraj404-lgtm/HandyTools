@@ -1,4 +1,5 @@
 import * as pobieranie from './tools/pobieranie.js';
+import { changelogHtml, hasNew, markSeen } from './changelog.js';
 
 // Zawartość z makiety. Wszystko tu jest POGLĄDOWE (Dokumentacja_produktu.md, sekcja 0)
 // i do podmiany, gdy zapadnie decyzja o funkcjach.
@@ -27,20 +28,20 @@ export const shortcuts = [
   { title: 'Szybka notatka', caption: 'Tekst lub dyktowanie', tool: 'notatki' },
 ];
 
-// Ekrany spoza narzędzi (adres #/<id>).
+// Ekrany spoza narzędzi (adres #/<id>). Opcjonalne: `render()` → HTML treści, `onOpen()` przy wejściu.
 export const pages = {
   ustawienia: { title: 'Ustawienia', icon: 'ustawienia' },
-  aktualizacje: { title: 'Aktualizacje', icon: 'aktualizacje' },
+  aktualizacje: { title: 'Aktualizacje', icon: 'aktualizacje', render: changelogHtml, onOpen: markSeen },
   wsparcie: { title: 'Wsparcie', icon: 'wsparcie' },
   konto: { title: 'Konto', icon: 'konto' },
   'edytuj-skroty': { title: 'Edytuj skróty', icon: 'edytuj' },
 };
 
 // Pasek dolny: najwyżej 5 pozycji, najwyżej jedna `primary`.
-// `page` otwiera ekran, `sheet` otwiera arkusz.
+// `page` otwiera ekran, `sheet` otwiera arkusz, `dot()` → kropka „coś nowego czeka”.
 export const bar = [
   { label: 'Ustawienia', icon: 'ustawienia', page: 'ustawienia' },
-  { label: 'Aktualizacje', icon: 'aktualizacje', page: 'aktualizacje' },
+  { label: 'Aktualizacje', icon: 'aktualizacje', page: 'aktualizacje', dot: hasNew },
   { label: 'Wsparcie', icon: 'wsparcie', page: 'wsparcie' },
   { label: 'Własna', icon: 'wlasna', sheet: 'wlasna', empty: true },
   { label: 'Skróty', icon: 'skroty', sheet: 'skroty', primary: true },

@@ -1,0 +1,110 @@
+// Historia zmian widoczna w aplikacji (pasek → Aktualizacje).
+// Każda zmiana, nowość albo poprawka → nowy wpis NA GÓRZE listy, z nową wersją.
+// Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
+export const changelog = [
+  {
+    version: '0.3.0',
+    date: '2026-09-26',
+    title: 'Aktualizacje',
+    items: [
+      ['Nowe', 'Ekran Aktualizacje z pełną historią zmian aplikacji.'],
+      ['Nowe', 'Kropka przy „Aktualizacje” na pasku, gdy jest wersja, której jeszcze nie oglądałeś.'],
+      ['Poprawka', 'X: zamiast ogólnego błędu jasny komunikat, gdy film jest ukryty przed niezalogowanymi (zwykle treść oznaczona jako wrażliwa).'],
+    ],
+  },
+  {
+    version: '0.2.3',
+    date: '2026-09-26',
+    title: 'Facebook i jakość',
+    items: [
+      ['Poprawka', 'Filmy z Facebooka i innych serwisów w formacie AV1 lub VP9 są konwertowane do H.264, więc zapisują się w Zdjęciach na iPhonie. Nowy etap: „Konwertuję do H.264”.'],
+      ['Poprawka', 'Wybrana jakość jest górnym limitem: 720p daje najwyżej 720p (wcześniej mogło przyjść 1152p).'],
+      ['Poprawka', 'Tytuły z Facebooka bez doklejonych liczników „views · reactions”.'],
+      ['Poprawka', 'Drugie dotknięcie „Zapisz” przy otwartym oknie Udostępnij nie wywołuje już błędu.'],
+      ['Zmiana', 'Po zakończeniu ekran sam przewija się do przycisku „Zapisz”, który chował się pod paskiem.'],
+      ['Zmiana', 'Serwer zapisuje błędy do pliku, żeby dało się szybko sprawdzić, dlaczego coś się nie pobrało.'],
+    ],
+  },
+  {
+    version: '0.2.2',
+    date: '2026-09-26',
+    title: 'Zapis do Zdjęć na iPhonie',
+    items: [
+      ['Poprawka', 'Zapisywanie na iPhonie: plik ściąga się do telefonu z postępem, a „Zapisz” otwiera okno Udostępnij („Zachowaj wideo” → Zdjęcia, „Zachowaj w Plikach”). Wcześniej aplikacja z ekranu głównego nie mogła zapisać pliku.'],
+      ['Nowe', 'Przycisk „Spróbuj ponownie”, gdy przesyłanie na telefon się przerwie. Plik czeka na komputerze godzinę.'],
+      ['Nowe', 'Komunikat dla plików powyżej 200 MB z propozycją niższej jakości albo krótszego fragmentu.'],
+    ],
+  },
+  {
+    version: '0.2.1',
+    date: '2026-09-26',
+    title: 'Połączenie z komputerem',
+    items: [
+      ['Nowe', 'Stały adres HTTPS do serwera na komputerze (Tailscale Funnel), działa także po restarcie.'],
+      ['Nowe', 'Serwer uruchamiany dwuklikiem: start-serwer.bat.'],
+      ['Nowe', 'Adres serwera otwarty w przeglądarce podpowiada, gdzie go wpisać.'],
+    ],
+  },
+  {
+    version: '0.2.0',
+    date: '2026-09-24',
+    title: 'Narzędzie Pobieranie',
+    items: [
+      ['Nowe', 'Pobieranie wideo i audio z linku z ok. 1800 serwisów (YouTube, Facebook, TikTok, Instagram, X i inne) przez serwer na komputerze.'],
+      ['Nowe', 'Przycisk „Wklej”: wstawia link ze schowka i od razu go sprawdza. Karta z miniaturą, tytułem, serwisem i czasem trwania.'],
+      ['Nowe', 'Wybór Wideo albo Audio, jakości (tylko tych, które serwis faktycznie ma) i formatu audio: MP3 albo M4A.'],
+      ['Nowe', 'Przycinanie: pola „Od” i „Do” (np. 1:05 albo 1:02:03).'],
+      ['Nowe', 'Postęp w procentach. Pobieranie wznawia się po wyjściu z narzędzia i powrocie.'],
+      ['Nowe', 'Historia 20 ostatnich pobrań. Dotknięcie wpisu pobiera link jeszcze raz.'],
+      ['Nowe', 'Sekcja „Ostatnie” w menu z kartą stanu pobierania.'],
+      ['Nowe', 'Ustawienia serwera: adres i hasło, sprawdzane przy zapisie.'],
+      ['Zmiana', 'Zablokowane przyciski są wygaszone. Na ekranie jest naraz tylko jedna czerwona akcja.'],
+    ],
+  },
+  {
+    version: '0.1.0',
+    date: '2026-09-23',
+    title: 'Pierwsza wersja',
+    items: [
+      ['Nowe', 'Menu główne: logo, wyszukiwarka narzędzi (działa też bez polskich znaków), siatka kafli z przyciskiem „Wszystkie”.'],
+      ['Nowe', 'Pasek dolny: Ustawienia, Aktualizacje, Wsparcie, Własna i wyróżnione Skróty.'],
+      ['Nowe', 'Panel Skróty z czterema skrótami do narzędzi. Zamykanie krzyżykiem, klawiszem Esc albo dotknięciem tła.'],
+      ['Nowe', 'Panel Własna: wolne miejsce na pasku.'],
+      ['Nowe', 'Ekrany narzędzi i podstron z przyciskiem powrotu do menu.'],
+      ['Nowe', 'Instalacja na ekranie głównym telefonu: ikona z sygnetem, ciemny motyw, font Manrope.'],
+      ['Nowe', 'Stały adres aplikacji (GitHub Pages). Każda zmiana trafia do aplikacji automatycznie.'],
+    ],
+  },
+];
+
+const SEEN = 'ht.aktualizacje.widziane';
+
+// Kropka na pasku: jest wersja, której użytkownik jeszcze nie oglądał.
+export const hasNew = () => {
+  try {
+    return localStorage.getItem(SEEN) !== changelog[0].version;
+  } catch {
+    return false;
+  }
+};
+
+export const markSeen = () => {
+  try {
+    localStorage.setItem(SEEN, changelog[0].version);
+  } catch {
+    /* prywatne okno: kropka wróci, nic więcej */
+  }
+};
+
+const date = (iso) => new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'numeric', year: 'numeric' });
+
+export const changelogHtml = () => changelog.map((v) => `
+  <section class="ht-section-block" aria-labelledby="v-${v.version}">
+    <div class="ht-section-head">
+      <h2 class="ht-section" id="v-${v.version}">${v.version} · ${v.title}</h2>
+      <span class="ht-meta">${date(v.date)}</span>
+    </div>
+    <ul class="ht-list">
+      ${v.items.map(([kind, text]) => `<li><span class="ht-section">${kind}</span><span class="ht-lead">${text}</span></li>`).join('')}
+    </ul>
+  </section>`).join('');

@@ -304,6 +304,8 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 - statyczna: coś nowego czeka (jest aktualizacja),
 - pulsująca `.ht-dot--live`: proces trwa teraz (np. działający stoper).
 
+**Lista tekstowa** `.ht-list` - pionowa lista bez punktorów, odstęp `--ht-gap`. Każdy element: krótka etykieta `.ht-section` (np. „Nowe”, „Poprawka”) nad opisem `.ht-lead`. Dla treści do czytania (historia zmian), nie do dotykania; lista klikalna to karty.
+
 **Stan pusty** `.ht-empty` - wyśrodkowana kolumna: studzienka z ikoną ekranu, tytuł `.ht-card-title`, podpowiedź `.ht-lead` (co zrobić albo co się tu pojawi). Odstępy `--ht-gap`, pion `--ht-gap-section`. Bez ilustracji i bez tekstów marketingowych.
 
 **Szkielet ładowania** `.ht-skeleton` - bloki `--ht-surface` w kształcie i promieniu docelowej treści, powolny oddech opacity. Bez spinnera.

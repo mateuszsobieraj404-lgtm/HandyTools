@@ -564,6 +564,10 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 .ht-dot--live { animation: ht-pulse var(--ht-t-pulse) ease-in-out infinite; }
 .ht-bar__icon .ht-dot { position: absolute; top: 3px; right: 4px; }
 
+/* --- lista tekstowa (np. historia zmian): etykieta .ht-section nad opisem .ht-lead --- */
+.ht-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--ht-gap); }
+.ht-list > li { display: flex; flex-direction: column; gap: 2px; }
+
 /* --- stan pusty: studzienka + tytuł + podpowiedź co zrobić ---------------- */
 .ht-empty {
   padding: var(--ht-gap-section) 0;

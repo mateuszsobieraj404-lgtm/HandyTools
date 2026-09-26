@@ -60,6 +60,9 @@ function validUrl(s) {
 function explain(stderr) {
   const line = stderr.split('\n').filter((l) => l.startsWith('ERROR:')).pop() || stderr.trim().split('\n').pop() || '';
   if (/Unsupported URL/i.test(line)) return 'Ten serwis nie jest obsługiwany.';
+  if (/\[twitter\].*(No video could be found|Video #\d+ is unavailable)/i.test(line)) {
+    return 'X nie pokazuje tego filmu niezalogowanym (zwykle treść oznaczona jako wrażliwa). Takie wpisy wymagają zalogowania: na razie nieobsługiwane.';
+  }
   if (/DRM/i.test(line)) return 'Ta treść jest zabezpieczona (DRM) i nie da się jej pobrać.';
   if (/private|unavailable|removed|not exist|404/i.test(line)) return 'Materiał jest prywatny, usunięty albo niedostępny.';
   if (/sign in|log ?in|confirm you|cookies/i.test(line)) return 'Serwis wymaga zalogowania. Na razie nieobsługiwane.';

@@ -17,8 +17,10 @@ const norm = (s) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').repl
 const barHtml = (current) => `
   <nav class="ht-bar ht-in" style="--i:4" aria-label="Pasek aplikacji">
     ${bar.map((b) => {
-      const inner = `<span class="ht-bar__icon">${icon(b.icon, 'md')}</span><span class="ht-bar-label">${b.label}</span>`;
-      if (b.page) return `<a class="ht-bar__item" href="#/${b.page}" ${current === b.page ? 'aria-current="page"' : ''}>${inner}</a>`;
+      const dot = b.dot?.();
+      const inner = `<span class="ht-bar__icon">${icon(b.icon, 'md')}${dot ? '<span class="ht-dot"></span>' : ''}</span><span class="ht-bar-label"${dot ? ' aria-hidden="true"' : ''}>${b.label}</span>`;
+      const dotLabel = dot ? ` aria-label="${b.label}, jest nowa wersja"` : '';
+      if (b.page) return `<a class="ht-bar__item" href="#/${b.page}"${dotLabel} ${current === b.page ? 'aria-current="page"' : ''}>${inner}</a>`;
       const mod = b.primary ? ' ht-bar__item--primary' : b.empty ? ' ht-bar__item--empty' : '';
       const label = b.empty ? ` aria-label="${b.label}, nieprzypisana"` : '';
       return `<button type="button" class="ht-bar__item${mod}" data-sheet="${b.sheet}"${label}>${inner}</button>`;
@@ -163,7 +165,10 @@ function route() {
 
   const block = (html) => `<div class="ht-section-block">${html}</div>`;
   if (tool) body = subScreen(tool.name, tool.render ? '' : block(empty(tool.icon, 'W przygotowaniu', 'Ekran jest gotowy, funkcja dojdzie później.')));
-  else if (page) body = subScreen(page.title, block(empty(page.icon, 'W przygotowaniu', 'Ten ekran dostanie treść, gdy zapadnie decyzja o funkcji.')));
+  else if (page) {
+    page.onOpen?.();
+    body = subScreen(page.title, page.render ? page.render() : block(empty(page.icon, 'W przygotowaniu', 'Ten ekran dostanie treść, gdy zapadnie decyzja o funkcji.')));
+  }
   else body = menuScreen();
 
   app.innerHTML = `<div class="ht-screen"><div class="ht-glow"></div>${body}<span class="ht-spacer"></span>${barHtml(page && a)}</div>`;

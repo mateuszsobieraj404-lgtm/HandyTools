@@ -8,7 +8,8 @@ Webowa aplikacja na telefon (PWA), Vite + czysty JS, bez frameworka. Hosting: Gi
 - Produkt i zasady: `Dokumentacja_produktu.md`. Wygląd: `Design System/` (tokeny w `handytools-tokens.css` są jedynym źródłem wartości, importowane wprost przez `src/main.js`).
 - Nowe narzędzie: wpis w `tools` w `src/content.js`, ikona w `src/icons.js`. Opcjonalne `render(el)` rysuje treść ekranu narzędzia.
 - Nawigacja przez hash (`#/narzedzie/<id>`, `#/<strona>`), żeby GitHub Pages nie zwracał 404.
-- Cała zawartość w `src/content.js` pochodzi z makiety i jest poglądowa.
+- Cała zawartość w `src/content.js` pochodzi z makiety i jest poglądowa (poza narzędziem Pobieranie i ekranem Aktualizacje).
+- **Changelog jest obowiązkowy:** każda zmiana widoczna dla użytkownika (nowość, poprawka, zmiana działania, także serwera) = nowy wpis NA GÓRZE `src/changelog.js` z podbitą wersją, w tym samym commicie. Ekran: pasek → Aktualizacje.
 
 ## Agent skills
 
