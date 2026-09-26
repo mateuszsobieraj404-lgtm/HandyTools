@@ -12,7 +12,7 @@ const paths = {
 
   ustawienia: '<path d="M4 7.5h10"/><path d="M18 7.5h2"/><path d="M4 16.5h4"/><path d="M12 16.5h8"/><circle cx="16" cy="7.5" r="2.2"/><circle cx="10" cy="16.5" r="2.2"/>',
   aktualizacje: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.6 4.2v3.9h-3.9"/>',
-  wsparcie: '<path d="M12 19.6s-7.3-4.3-7.3-9.1a4.1 4.1 0 0 1 7.3-2.55 4.1 4.1 0 0 1 7.3 2.55c0 4.8-7.3 9.1-7.3 9.1Z"/>',
+  home: '<path d="M4.5 10.4 12 4.3l7.5 6.1v8.3a1.3 1.3 0 0 1-1.3 1.3h-3.9v-5.6H9.7V20H5.8a1.3 1.3 0 0 1-1.3-1.3Z"/>',
   wlasna: '<rect x="4.2" y="4.2" width="15.6" height="15.6" rx="4.6" stroke-dasharray="3.4 3.2"/><path d="M12 9.2v5.6"/><path d="M9.2 12h5.6"/>',
   skroty: '<path d="M13.2 3.2 5.8 13.1h5.1l-.9 7.7 7.4-9.9h-5.1Z"/>',
 

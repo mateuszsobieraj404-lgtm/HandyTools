@@ -34,7 +34,6 @@ export const shortcuts = [
 export const pages = {
   ustawienia: { title: 'Ustawienia', icon: 'ustawienia', render: settingsList },
   aktualizacje: { title: 'Aktualizacje', icon: 'aktualizacje', render: changelogHtml, onOpen: markSeen },
-  wsparcie: { title: 'Wsparcie', icon: 'wsparcie' },
   konto: { title: 'Konto', icon: 'konto' },
   'edytuj-skroty': { title: 'Edytuj skróty', icon: 'edytuj' },
 };
@@ -44,7 +43,7 @@ export const pages = {
 export const bar = [
   { label: 'Ustawienia', icon: 'ustawienia', page: 'ustawienia' },
   { label: 'Aktualizacje', icon: 'aktualizacje', page: 'aktualizacje', dot: hasNew },
-  { label: 'Wsparcie', icon: 'wsparcie', page: 'wsparcie' },
+  { label: 'Home', icon: 'home', page: '' }, // '' = menu główne
   { label: 'Własna', icon: 'wlasna', sheet: 'wlasna', empty: true },
   { label: 'Skróty', icon: 'skroty', sheet: 'skroty', primary: true },
 ];

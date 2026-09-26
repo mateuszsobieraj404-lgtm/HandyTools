@@ -3,6 +3,14 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.5.2',
+    date: '2026-09-26',
+    title: 'Home na pasku',
+    items: [
+      ['Zmiana', 'Na pasku dolnym zamiast „Wsparcie” jest „Home”: powrót do menu głównego z każdego ekranu. W menu przycisk jest podświetlony.'],
+    ],
+  },
+  {
     version: '0.5.1',
     date: '2026-09-26',
     title: 'Prywatność',

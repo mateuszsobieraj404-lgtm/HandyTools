@@ -20,7 +20,7 @@ const barHtml = (current) => `
       const dot = b.dot?.();
       const inner = `<span class="ht-bar__icon">${icon(b.icon, 'md')}${dot ? '<span class="ht-dot"></span>' : ''}</span><span class="ht-bar-label"${dot ? ' aria-hidden="true"' : ''}>${b.label}</span>`;
       const dotLabel = dot ? ` aria-label="${b.label}, jest nowa wersja"` : '';
-      if (b.page) return `<a class="ht-bar__item" href="#/${b.page}"${dotLabel} ${current === b.page ? 'aria-current="page"' : ''}>${inner}</a>`;
+      if ('page' in b) return `<a class="ht-bar__item" href="#/${b.page}"${dotLabel} ${current === b.page ? 'aria-current="page"' : ''}>${inner}</a>`;
       const mod = b.primary ? ' ht-bar__item--primary' : b.empty ? ' ht-bar__item--empty' : '';
       const label = b.empty ? ` aria-label="${b.label}, nieprzypisana"` : '';
       return `<button type="button" class="ht-bar__item${mod}" data-sheet="${b.sheet}"${label}>${inner}</button>`;
@@ -173,7 +173,7 @@ function route() {
   }
   else body = menuScreen();
 
-  app.innerHTML = `<div class="ht-screen"><div class="ht-glow"></div>${body}<span class="ht-spacer"></span>${barHtml(page && a)}</div>`;
+  app.innerHTML = `<div class="ht-screen"><div class="ht-glow"></div>${body}<span class="ht-spacer"></span>${barHtml(tool ? null : setTool ? 'ustawienia' : page ? a : '')}</div>`; // '' = menu (Home aktywny)
 
   if (tool?.render) tool.render(document.getElementById('content'));
   if (setTool) setTool.settings(document.getElementById('content'));
