@@ -3,6 +3,7 @@
 Webowa aplikacja na telefon (PWA), Vite + czysty JS, bez frameworka. Hosting: GitHub Pages (`.github/workflows/deploy.yml`, każdy push na `main`).
 
 - Serwer pobierania (narzędzie „Pobieranie”): `start-serwer.bat` (dwuklik) albo `npm run server` na komputerze, hasło w `server/.env` (`HT_PASSWORD=`, poza repo). Telefon łączy się przez Tailscale Funnel. Wymaga Pythona z yt-dlp (filmy), gallery-dl (zdjęcia) i ffmpeg. Log błędów: `%LOCALAPPDATA%\HandyTools\server.log` (poza repo, bo zawiera linki). Nigdy nie commituj danych użytkownika (linki, IP, adresy Tailscale, e-mail). Linki z X, Instagrama i Reddita używają ciasteczek z Firefoksa (`HT_COOKIES_BROWSER`), inne serwisy bez logowania.
+- Pomocnik Remote (`src/tools/pomocnik*`, `src/konto.js`): podgląd bazy Supabase aplikacji Pomocnik List Sprzętu (osobne repo `pomocnik-list-sprzetu`), TYLKO ODCZYT, pilnuje tego `src/tools/pomocnik/tylko-odczyt.test.js`. Adres bazy i klucz wpisuje użytkownik w Koncie; nigdy nie wpisuj ich do repo.
 - Testy: `npm test`.
 - Uruchom: `npm run dev` (adres dla telefonu w tej samej sieci Wi-Fi pokazuje się jako „Network”).
 - Produkt i zasady: `Dokumentacja_produktu.md`. Wygląd: `Design System/` (tokeny w `handytools-tokens.css` są jedynym źródłem wartości, importowane wprost przez `src/main.js`).

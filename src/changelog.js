@@ -3,6 +3,20 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.10.0',
+    date: '2026-09-26',
+    title: 'Pomocnik Remote',
+    items: [
+      ['Nowe', 'Pomocnik Remote: listy i sprzęt z Pomocnika List Sprzętu na telefonie, tylko do odczytu.'],
+      ['Nowe', 'Ekran Konto (awatar w menu): połączenie z bazą Pomocnika i logowanie jego kontem. Narzędzie pojawia się w menu dopiero po zalogowaniu.'],
+      ['Nowe', 'Listy: nadchodzące i archiwum, wyszukiwanie i filtr rodzaju. W liście termin, autor, stan, opis i sprzęt z ilościami i uwagami, także po magazynach.'],
+      ['Nowe', 'Sprzęt: po magazynach, z wyszukiwarką, tagami i stanem magazynowym.'],
+      ['Nowe', 'Najbliższe dni: suma sprzętu z list na 7, 14 albo 30 dni, z ostrzeżeniem, gdy na stanie jest za mało.'],
+      ['Nowe', 'Ostatni pobrany stan zostaje w telefonie: pokazuje się od razu, także bez internetu.'],
+      ['Zmiana', 'Skrót „Nowa lista” (z makiety) zastąpiony skrótem „Konwertuj plik”; poglądowy kafel „Listy sprzętu” zastąpiony przez Pomocnik Remote.'],
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-09-26',
     title: 'Konwerter: każdy plik po swojemu',

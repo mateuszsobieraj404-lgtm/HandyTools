@@ -1,5 +1,7 @@
 import * as pobieranie from './tools/pobieranie.js';
 import * as konwerter from './tools/konwerter.js';
+import * as pomocnik from './tools/pomocnik.js';
+import { konto } from './konto.js';
 import { changelogHtml, hasNew, markSeen } from './changelog.js';
 import { icon } from './icons.js';
 
@@ -10,32 +12,33 @@ import { icon } from './icons.js';
 // Opcjonalne `render(el)` rysuje treść ekranu narzędzia; bez niego ekran pokazuje stan pusty.
 // Opcjonalne `state()` zwraca { value, live? } dla karty stanu w menu albo null.
 // Opcjonalne `settings(el)` rysuje ekran Ustawienia → <narzędzie> (`settingsCaption`: podpis na liście).
+// Opcjonalne `hidden()` → true chowa narzędzie z menu (np. do zalogowania); `title(id)` → nagłówek podstrony #/narzedzie/<id>/<id>.
 export const tools = [
   { id: 'pobieranie', name: 'Pobieraczek', icon: 'pobieranie', settingsCaption: 'Serwer, formaty, jakość', ...pobieranie },
   { id: 'konwerter', name: 'Konwerter', icon: 'konwerter', ...konwerter },
+  { id: 'pomocnik', name: 'Pomocnik Remote', icon: 'listy', hidden: () => !pomocnik.zalogowany(), ...pomocnik },
   { id: 'kalkulator', name: 'Kalkulator', icon: 'kalkulator' },
   { id: 'notatki', name: 'Notatki', icon: 'notatki' },
   { id: 'miarka', name: 'Miarka', icon: 'miarka' },
   { id: 'kalendarz', name: 'Kalendarz', icon: 'kalendarz' },
   { id: 'eksport-pdf', name: 'Eksport PDF', icon: 'eksport' },
-  { id: 'listy', name: 'Listy sprzętu', icon: 'listy' },
   { id: 'skaner', name: 'Skaner QR', icon: 'skaner' },
   { id: 'stoper', name: 'Stoper', icon: 'stoper' },
 ];
 
 // Skróty używają ikon swoich narzędzi.
 export const shortcuts = [
-  { title: 'Nowa lista', caption: 'Z szablonu sceny', tool: 'listy' },
+  { title: 'Konwertuj plik', caption: 'Obraz, dźwięk, wideo, dokument', tool: 'konwerter' },
   { title: 'Skanuj kod', caption: 'Dopisz do listy', tool: 'skaner' },
   { title: 'Stoper', caption: 'Odmierz czas', tool: 'stoper' },
   { title: 'Szybka notatka', caption: 'Tekst lub dyktowanie', tool: 'notatki' },
 ];
 
-// Ekrany spoza narzędzi (adres #/<id>). Opcjonalne: `render()` → HTML treści, `onOpen()` przy wejściu.
+// Ekrany spoza narzędzi (adres #/<id>). Opcjonalne: `render()` → HTML treści albo `mount(el)` → ekran z własną obsługą, `onOpen()` przy wejściu.
 export const pages = {
   ustawienia: { title: 'Ustawienia', icon: 'ustawienia', render: settingsList },
   aktualizacje: { title: 'Aktualizacje', icon: 'aktualizacje', render: changelogHtml, onOpen: markSeen },
-  konto: { title: 'Konto', icon: 'konto' },
+  konto: { title: 'Konto', icon: 'konto', mount: konto },
   'edytuj-skroty': { title: 'Edytuj skróty', icon: 'edytuj' },
 };
 

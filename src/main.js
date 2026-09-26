@@ -10,6 +10,9 @@ const GRID_SIZE = 6; // tyle kafli widać, zanim rozwiniesz „Wszystkie”
 let showAll = false;
 let opener = null;
 
+// Narzędzia widoczne w menu (np. Pomocnik Remote dopiero po zalogowaniu).
+const visible = () => tools.filter((t) => !t.hidden?.());
+
 const norm = (s) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ł/g, 'l');
 
 /* --- klocki ------------------------------------------------------------- */
@@ -35,7 +38,7 @@ const stateCard = (t, s) => `
 
 // Sekcja „Ostatnie”: tylko narzędzia, które mają bieżący stan.
 function recent() {
-  const cards = tools.map((t) => t.state?.() && stateCard(t, t.state())).filter(Boolean);
+  const cards = visible().map((t) => t.state?.() && stateCard(t, t.state())).filter(Boolean);
   return cards.length ? `
   <section class="ht-section-block ht-in" style="--i:2" aria-labelledby="h-recent">
     <h2 class="ht-section" id="h-recent">Ostatnie</h2>
@@ -118,15 +121,16 @@ function renderGrid(animate) {
   const chip = document.querySelector('[data-action="all"]');
   const raw = document.getElementById('ht-find').value.trim();
   const q = norm(raw);
-  const list = q ? tools.filter((t) => norm(t.name).includes(q)) : showAll ? tools : tools.slice(0, GRID_SIZE);
+  const all = visible();
+  const list = q ? all.filter((t) => norm(t.name).includes(q)) : showAll ? all : all.slice(0, GRID_SIZE);
 
   grid.classList.toggle('ht-stagger', animate);
   grid.innerHTML = list.length
     ? list.map(tile).join('')
     : `<p class="ht-lead" style="grid-column: 1 / -1">Brak narzędzia „${esc(raw)}”.</p>`;
 
-  chip.hidden = Boolean(q) || tools.length <= GRID_SIZE;
-  chip.textContent = showAll ? 'Zwiń' : `Wszystkie ${tools.length}`;
+  chip.hidden = Boolean(q) || all.length <= GRID_SIZE;
+  chip.textContent = showAll ? 'Zwiń' : `Wszystkie ${all.length}`;
   chip.setAttribute('aria-expanded', showAll);
 }
 
@@ -158,18 +162,18 @@ function route() {
   layer.innerHTML = '';
   app.inert = false;
 
-  const [, a, b] = location.hash.split('/'); // '#/narzedzie/kalkulator' → ['#', 'narzedzie', 'kalkulator']
-  const tool = a === 'narzedzie' && tools.find((t) => t.id === b);
+  const [, a, b, c] = location.hash.split('/'); // '#/narzedzie/kalkulator' → ['#', 'narzedzie', 'kalkulator']; c: podstrona narzędzia
+  const tool = a === 'narzedzie' && visible().find((t) => t.id === b);
   const setTool = a === 'ustawienia' && b && tools.find((t) => t.id === b && t.settings); // #/ustawienia/<narzędzie>
   const page = pages[a];
   let body;
 
   const block = (html) => `<div class="ht-section-block">${html}</div>`;
-  if (tool) body = subScreen(tool.name, tool.render ? '' : block(empty(tool.icon, 'W przygotowaniu', 'Ekran jest gotowy, funkcja dojdzie później.')));
+  if (tool) body = subScreen(tool.title?.(c) ?? tool.name, tool.render ? '' : block(empty(tool.icon, 'W przygotowaniu', 'Ekran jest gotowy, funkcja dojdzie później.')), c ? `#/narzedzie/${b}` : '#/');
   else if (setTool) body = subScreen(setTool.name, '', '#/ustawienia');
   else if (page) {
     page.onOpen?.();
-    body = subScreen(page.title, page.render ? page.render() : block(empty(page.icon, 'W przygotowaniu', 'Ten ekran dostanie treść, gdy zapadnie decyzja o funkcji.')));
+    body = subScreen(page.title, page.render ? page.render() : page.mount ? '' : block(empty(page.icon, 'W przygotowaniu', 'Ten ekran dostanie treść, gdy zapadnie decyzja o funkcji.')));
   }
   else body = menuScreen();
 
@@ -177,6 +181,7 @@ function route() {
 
   if (tool?.render) tool.render(document.getElementById('content'));
   if (setTool) setTool.settings(document.getElementById('content'));
+  if (page?.mount) page.mount(document.getElementById('content'));
   if (!tool && !page) {
     showAll = false;
     renderGrid(true);

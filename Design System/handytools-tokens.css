@@ -810,6 +810,14 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   gap: var(--ht-gap);
   padding: 0 0 var(--ht-gap) calc(var(--ht-thumb-mark) + var(--ht-gap)); /* wcięcie do nazwy pliku */
 }
+/* Wartości w wierszu (Pomocnik Remote): ilość wyraźnie, uwagi przy pozycji jaśniej niż zwykły podpis,
+   wartość w wierszu opisu (np. „Termin”) po prawej, może się zawinąć. */
+.ht-ilosc { font-size: var(--ht-fs-section); font-weight: 600; color: var(--ht-text); text-align: right; }
+.ht-uwagi { color: var(--ht-text); }
+.ht-row__value { flex: 0 1 auto; max-width: 65%; text-align: right; color: var(--ht-text); }
+.ht-row > .ht-row__name { padding-block: 8px; } /* podpis w dwóch liniach nie dotyka kresek */
+.ht-row__name > .ht-row__label { font-size: var(--ht-fs-label); font-weight: 500; color: var(--ht-muted); } /* etykieta w wierszu opisu */
+
 /* Zaznaczenie: to samo kółko co na miniaturach; odznaczone to sam obrys. */
 .ht-check {
   flex: none;

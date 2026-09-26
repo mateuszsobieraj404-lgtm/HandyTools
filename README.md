@@ -31,9 +31,19 @@ Zamienia pliki z jednego formatu na inny, w całości w telefonie: pliki nie są
 
 Konwersje działają w przeglądarce dzięki WebAssembly: [ImageMagick](https://github.com/dlemstra/magick-wasm), [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm), [pdf.js](https://github.com/mozilla/pdf.js), [pdf-lib](https://github.com/Hopding/pdf-lib), [pandoc](https://github.com/jgm/pandoc) i [Typst](https://github.com/Myriad-Dreamin/typst.ts). ffmpeg i pandoc są na licencji GPL. Pomysł zainspirowany przez [convert.to.it](https://github.com/p2r3/convert).
 
+### Pomocnik Remote
+
+Podgląd bazy aplikacji Pomocnik List Sprzętu na telefonie, tylko do odczytu. Narzędzie pojawia się w menu po zalogowaniu kontem z Pomocnika (ekran Konto).
+
+- Listy: nadchodzące i archiwum, wyszukiwanie, filtr rodzaju; w liście termin, autor, stan, opis i sprzęt z ilościami i uwagami, także po magazynach.
+- Sprzęt: pogrupowany po magazynach, z wyszukiwarką, tagami i stanem magazynowym.
+- Najbliższe dni: suma sprzętu z list na 7, 14 albo 30 dni, z ostrzeżeniem, gdy potrzeba więcej, niż jest na stanie.
+- Ostatnio pobrany stan zostaje w telefonie i pokazuje się od razu, także bez internetu.
+
 ## Jak to jest zbudowane
 
 - Aplikacja: Vite i czysty JavaScript, bez frameworka.
+- Pomocnik Remote: [supabase-js](https://github.com/supabase/supabase-js), tylko odczyt.
 - Serwer Pobieraczka: Node.js z programami yt-dlp (filmy i dźwięk), gallery-dl (zdjęcia) i ffmpeg (łączenie i konwersja).
 - Wygląd: własny system wizualny z tokenami w `Design System/`.
 
@@ -51,6 +61,7 @@ npm run server   # serwer Pobieraczka
 | `src/content.js` | rejestr narzędzi i ekranów |
 | `src/tools/pobieranie.js` | Pobieraczek |
 | `src/tools/konwerter.js`, `src/tools/konwerter/` | Konwerter: ekran, katalog formatów, silniki |
+| `src/tools/pomocnik.js`, `src/tools/pomocnik/`, `src/konto.js` | Pomocnik Remote: ekran, dane, logowanie |
 | `src/changelog.js` | historia zmian |
 | `server/server.js` | serwer Pobieraczka |
 | `Design System/` | tokeny, opis systemu wizualnego, makieta |

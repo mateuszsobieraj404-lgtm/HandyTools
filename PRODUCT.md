@@ -32,13 +32,14 @@ Osobisty zestaw narzędzi budowany pod własne potrzeby autora i jego bliskich, 
 
 ## Capabilities and Constraints
 
-- **Narzędzia:** Pobieraczek (wideo, dźwięk i zdjęcia z linku, ok. 1800 serwisów, wycinanie fragmentu, zapis do Zdjęć na iPhonie) i Konwerter (obrazy, audio, wideo, PDF i dokumenty; w całości w telefonie, bez serwera). Pobieraczek przekazuje pliki do Konwertera. Pozostałe kafle w menu są poglądowe, z makiety.
+- **Narzędzia:** Pobieraczek (wideo, dźwięk i zdjęcia z linku, ok. 1800 serwisów, wycinanie fragmentu, zapis do Zdjęć na iPhonie) i Konwerter (obrazy, audio, wideo, PDF i dokumenty; w całości w telefonie, bez serwera). Pobieraczek przekazuje pliki do Konwertera. Pomocnik Remote (podgląd bazy Pomocnika List Sprzętu, tylko odczyt) pojawia się w menu po zalogowaniu w Koncie kontem z Pomocnika. Pozostałe kafle w menu są poglądowe, z makiety.
 - **Konwerter bez serwera:** decyzja autora (bez instalacji na komputerze i na przyszłym Raspberry Pi). Excel/PowerPoint → PDF i wierny układ Word ↔ PDF wymagałyby LibreOffice na serwerze: poza zakresem na teraz.
 - **Język:** polski.
 - **Prywatność:** linki, historia i ustawienia zostają na telefonie i komputerze autora. Do publicznego repozytorium nie trafiają dane użytkownika ani dane dostępowe.
 - **Bez powiększania ekranu:** świadoma decyzja autora (aplikacja ma działać jak natywna), mimo że ogranicza to osoby korzystające z powiększania gestem.
 - **Każda zmiana** dostaje wpis w historii zmian w aplikacji (ekran Aktualizacje) i GitHub Release.
-- **Nierozstrzygnięte:** konta i synchronizacja między urządzeniami; praca Pobieraczka bez włączonego komputera (Raspberry Pi, stary laptop albo chmura); zestaw kolejnych narzędzi.
+- **Pomocnik Remote tylko czyta:** logowanie kontem właściciela (decyzja autora), więc zapis blokuje kod aplikacji (test-strażnik), nie serwer. Adres bazy i klucz wpisuje się w telefonie, nie ma ich w repozytorium. Zapis z telefonu (np. odhaczanie sprzętu) to osobna decyzja.
+- **Nierozstrzygnięte:** synchronizacja HandyTools między urządzeniami; praca Pobieraczka bez włączonego komputera (Raspberry Pi, stary laptop albo chmura); zestaw kolejnych narzędzi.
 
 ## Brand Commitments
 
