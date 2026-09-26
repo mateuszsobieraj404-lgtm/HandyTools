@@ -46,8 +46,6 @@ export const TARGETS = {
   doc: ['docx', 'odt', 'rtf', 'md', 'html', 'txt', 'epub', 'pdf'],
 };
 
-export const KIND_LABEL = { image: 'Obrazy', audio: 'Audio', video: 'Wideo', pdf: 'PDF', doc: 'Dokumenty' };
-
 // Silnik ładowany przy pierwszym użyciu; `mb` to rozmiar do pobrania, pokazywany użytkownikowi.
 export const ENGINES = {
   magick: { label: 'obrazów', mb: 15 },
@@ -113,7 +111,7 @@ export function ffmpegArgs(to, opts = {}) {
     m4a: ['-vn', '-c:a', 'aac', '-b:a', br],
     wav: ['-vn', '-c:a', 'pcm_s16le'],
     flac: ['-vn', '-c:a', 'flac'],
-    ogg: ['-vn', '-c:a', 'libvorbis', '-b:a', br],
+    ogg: ['-vn', '-c:a', 'libvorbis', '-ar', '44100', '-b:a', br], // Vorbis nie przyjmuje niskich częstotliwości (np. 8 kHz z dyktafonu)
     opus: ['-vn', '-c:a', 'libopus', '-b:a', br],
   };
   if (audio[to]) return audio[to];
@@ -122,6 +120,6 @@ export function ffmpegArgs(to, opts = {}) {
     return ['-vf', `fps=12,scale=${w}:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse`, '-loop', '0'];
   }
   const scale = opts.resolution ? ['-vf', `scale=-2:'min(${opts.resolution},ih)'`] : []; // tylko zmniejszaj
-  if (to === 'webm') return [...scale, '-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '1500k', '-c:a', 'libvorbis', '-b:a', '128k'];
+  if (to === 'webm') return [...scale, '-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8', '-b:v', '1500k', '-c:a', 'libvorbis', '-ar', '44100', '-b:a', '128k'];
   return [...scale, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', ...(to === 'mkv' ? [] : ['-movflags', '+faststart'])];
 }

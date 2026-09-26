@@ -22,7 +22,9 @@ Pobieranie wykonuje komputer w domu, a telefon tylko wysyła do niego link i odb
 
 Zamienia pliki z jednego formatu na inny, w całości w telefonie: pliki nie są nigdzie wysyłane.
 
-- Obrazy (w tym HEIC z iPhone'a), audio, wideo, PDF i dokumenty tekstowe; wiele plików naraz.
+- Obrazy (w tym HEIC z iPhone'a), audio, wideo, PDF i dokumenty tekstowe; wiele plików naraz, także różnych rodzajów.
+- Każdy plik może mieć własny format i opcje; pliki jednego rodzaju można też ustawić wspólnie.
+- Zaznaczone pliki konwertuje się i zapisuje zbiorczo, każdy gotowy plik można też zapisać osobno.
 - Kilka zdjęć w jeden PDF, PDF na obrazy strona po stronie, PDF na Word, dokumenty do PDF.
 - Opcje jakości, rozmiaru, bitrate i rozdzielczości.
 - Plik pobrany w Pobieraczku można przekazać do Konwertera jednym dotknięciem.

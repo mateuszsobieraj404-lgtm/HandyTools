@@ -15,7 +15,7 @@ Obok Pobieraczka: konwersja plików z telefonu, duży wybór rodzajów (obrazy, 
   - audio i wideo: `@ffmpeg/ffmpeg` + `@ffmpeg/core` jednowątkowy (GPL; GitHub Pages nie ustawia nagłówków COOP/COEP potrzebnych do wersji wielowątkowej),
   - PDF → obrazy: `pdfjs-dist` (Apache-2.0); obrazy → PDF: `pdf-lib` (MIT),
   - dokumenty tekstowe: `pandoc-wasm` (oficjalny pandoc 3.9, GPL); PDF z dokumentów: pandoc → Typst → `@myriaddreamin/typst.ts` (Apache-2.0).
-- **Wiele plików naraz**, zapis wszystkich jednym oknem Udostępnij (jak zdjęcia w Pobieraczku).
+- **Wiele plików naraz, także różnych rodzajów** (0.9.0): każdy plik ma własny format i opcje w rozwijanym panelu wiersza. Przy plikach jednego rodzaju przełącznik „Wspólne” / „Dla każdego pliku”. Pola zaznaczenia: konwersja i zapis („Zapisz” jednym oknem Udostępnij) dotyczą zaznaczonych; każdy gotowy plik ma też własny zapis. Zdjęcia → PDF ze wspólnymi ustawieniami łączą się w jeden plik.
 - **Opcje: format + kluczowe:** obrazy (jakość, maks. rozmiar), audio (bitrate), wideo (rozdzielczość), GIF (szerokość), PDF → obrazy (rozdzielczość).
 - **Współpraca z Pobieraczkiem:** plik pobrany w Pobieraczku można przekazać do Konwertera przed zapisem albo po nim, bez wybierania z telefonu (zasada produktu 2: narzędzia mogą współpracować).
 - **Nazwa:** Konwerter (zastępuje poglądowy kafel „Konwerter” z makiety, ta sama ikona).

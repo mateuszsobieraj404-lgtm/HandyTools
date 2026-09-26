@@ -3,6 +3,20 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.9.0',
+    date: '2026-09-26',
+    title: 'Konwerter: każdy plik po swojemu',
+    items: [
+      ['Nowe', 'Można dodać naraz pliki różnych rodzajów (np. wideo, audio i dokument) i każdemu wybrać inny format.'],
+      ['Nowe', 'Dotknięcie pliku rozwija jego ustawienia: format docelowy i opcje (jakość, rozmiar, bitrate, rozdzielczość).'],
+      ['Nowe', 'Przy plikach jednego rodzaju przełącznik „Wspólne” albo „Dla każdego pliku”.'],
+      ['Nowe', 'Pola zaznaczenia przy plikach i „Zaznacz wszystko”: konwersja i zapis dotyczą zaznaczonych.'],
+      ['Nowe', 'Każdy gotowy plik ma własny przycisk zapisu; „Zapisz” na dole zapisuje wszystkie zaznaczone naraz.'],
+      ['Zmiana', 'Błąd jednego pliku nie przerywa konwersji pozostałych; zmiana ustawień gotowego pliku oznacza go do ponownej konwersji.'],
+      ['Poprawka', 'Konwersja na OGG (i WEBM) działa także z nagrań o niskiej jakości, np. z dyktafonu.'],
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-09-26',
     title: 'Konwerter',
