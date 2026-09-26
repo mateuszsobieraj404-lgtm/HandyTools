@@ -1,4 +1,5 @@
 import * as pobieranie from './tools/pobieranie.js';
+import * as konwerter from './tools/konwerter.js';
 import { changelogHtml, hasNew, markSeen } from './changelog.js';
 import { icon } from './icons.js';
 
@@ -11,8 +12,8 @@ import { icon } from './icons.js';
 // Opcjonalne `settings(el)` rysuje ekran Ustawienia → <narzędzie> (`settingsCaption`: podpis na liście).
 export const tools = [
   { id: 'pobieranie', name: 'Pobieraczek', icon: 'pobieranie', settingsCaption: 'Serwer, formaty, jakość', ...pobieranie },
+  { id: 'konwerter', name: 'Konwerter', icon: 'konwerter', ...konwerter },
   { id: 'kalkulator', name: 'Kalkulator', icon: 'kalkulator' },
-  { id: 'konwerter', name: 'Konwerter', icon: 'konwerter' },
   { id: 'notatki', name: 'Notatki', icon: 'notatki' },
   { id: 'miarka', name: 'Miarka', icon: 'miarka' },
   { id: 'kalendarz', name: 'Kalendarz', icon: 'kalendarz' },

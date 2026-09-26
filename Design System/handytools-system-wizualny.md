@@ -313,6 +313,8 @@ Wszystkie 52 px, promień 16, napis 15/600, ikona 18 px, odstęp 9 px. Etykieta 
 - **Wiersz nazwy** `.ht-filename`: wygląda jak pole z ołówkiem, dotknięcie zamienia go w pole.
 - **Rząd fragmentu** `.ht-trim`: pole Od, kwadratowy przycisk ▶, pole Do.
 
+**Lista plików** `.ht-rows` + `.ht-row` - wiersze rozdzielone kreską `--ht-line`: ikona rodzaju (22 px), nazwa 13.5/600 ucięta wielokropkiem z podpisem `.ht-caption` (format, rozmiar), stan po prawej (`.ht-row__state`, np. „42%”, „Gotowe”) i opcjonalny przycisk ikonowy (usuń). Postęp: `.ht-row__bar`, cienka linia 2 px w `--ht-text` pod wierszem, bez toru w tle, rośnie przez `transform: scaleX(var(--p))`.
+
 **Siatka miniatur** `.ht-thumbs` + `.ht-thumb` - elementy posta (karuzela, pokaz slajdów): 3 kolumny, odstęp `--ht-gap`, kwadratowe miniatury na `--ht-raised`, promień `--ht-r-lg`. Zdjęcie do zaznaczania: `aria-pressed`, w prawym górnym rogu kółko `--ht-thumb-mark` z ptaszkiem (jasne = zaznaczone, sam obrys = odznaczone), odznaczone zdjęcie wygaszone do `--ht-dim`. Film: znaczek ▶ i czas w lewym dolnym rogu na `--ht-scrim-solid`, wybrany film obrysowany `--ht-text` (`aria-current`). Bez akcentu.
 
 **Podgląd** `.ht-preview` - odtwarzacz albo stopklatka w ramce 16:9 na `--ht-recess`, promień `--ht-r-lg`, obraz dopasowany bez przycinania.

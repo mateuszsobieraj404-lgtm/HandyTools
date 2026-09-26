@@ -9,7 +9,10 @@ const paths = {
   wideo: '<rect x="3.5" y="6.2" width="12.3" height="11.6" rx="2.6"/><path d="m15.8 10.3 4.7-2.8v9l-4.7-2.8"/>',
   bezdzwieku: '<path d="M4.5 9.6h2.8l4.2-3.6v12l-4.2-3.6H4.5Z"/><path d="m15.6 9.6 4.8 4.8"/><path d="m20.4 9.6-4.8 4.8"/>',
   audio: '<path d="M9.2 17.6V6.2l9.8-2v11.4"/><circle cx="6.9" cy="17.6" r="2.3"/><circle cx="16.7" cy="15.6" r="2.3"/>',
-  zaznacz:'<path d="M5.5 12.5l4.2 4.2 8.8-9.4"/>',
+  zaznacz: '<path d="M5.5 12.5l4.2 4.2 8.8-9.4"/>',
+  zdjecie: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.8"/><circle cx="9" cy="9.6" r="1.7"/><path d="m20.5 15.2-4.6-4.4-9.4 8.7"/>',
+  dokument: '<path d="M7 3.5h7l4.5 4.5v11.2a1.3 1.3 0 0 1-1.3 1.3H7a1.3 1.3 0 0 1-1.3-1.3V4.8A1.3 1.3 0 0 1 7 3.5Z"/><path d="M13.8 3.6V8h4.6"/>',
+  dodaj: '<path d="M12 5.5v13"/><path d="M5.5 12h13"/>',
   pauza:'<path d="M8.5 5.5v13"/><path d="M15.5 5.5v13"/>',
   konto:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5a7 7 0 0 1 14 0"/>',
 

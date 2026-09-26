@@ -727,6 +727,7 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   border-top: 1px solid var(--ht-line);
 }
 .ht-group h3 { margin: 0; }
+.ht-stack > .ht-group:first-child { border-top: 0; padding-top: 0; } /* pierwsza grupa pod nagłówkiem ekranu: bez kreski */
 .ht-group .ht-section-head .ht-meta { font-variant-numeric: tabular-nums; }
 
 /* Główny materiał: podgląd na całą szerokość, pod nim tytuł (najwyżej 2 linie) i opis. */
@@ -767,6 +768,34 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
   background: linear-gradient(to top, var(--ht-bg) 70%, transparent);
 }
 .ht-dock > .ht-btn { width: 100%; } /* przycisk w bloku sam się nie rozciąga */
+
+/* Lista plików: wiersze rozdzielone kreską, ikona rodzaju, nazwa (ucięta), stan po prawej.
+   Pasek postępu to cienka linia pod wierszem (bez toru w tle), --ht-text. */
+.ht-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.ht-row {
+  position: relative;
+  min-height: var(--ht-control);
+  display: flex;
+  align-items: center;
+  gap: var(--ht-gap);
+  border-top: 1px solid var(--ht-line);
+  color: var(--ht-icon);
+}
+.ht-row:first-child { border-top: 0; }
+.ht-row__name { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ht-row__name > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ht-fs-section); font-weight: 600; color: var(--ht-text); }
+.ht-row__state { flex: none; font-size: var(--ht-fs-label); font-weight: 500; color: var(--ht-muted); font-variant-numeric: tabular-nums; }
+.ht-row__bar {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  right: 0;
+  height: 2px;
+  background: var(--ht-text);
+  transform: scaleX(var(--p, 0)); /* animujemy tylko transform */
+  transform-origin: left;
+  transition: transform var(--ht-t-state) var(--ht-ease);
+}
 
 /* Arkusz i przyciemnienie nad paskiem dolnym (z-index 2). */
 .ht-scrim, .ht-sheet { z-index: 3; }

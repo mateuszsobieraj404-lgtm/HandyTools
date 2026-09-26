@@ -18,6 +18,17 @@ Pobiera wideo, dźwięk i zdjęcia z linku. Obsługuje około 1800 serwisów, m.
 
 Pobieranie wykonuje komputer w domu, a telefon tylko wysyła do niego link i odbiera gotowy plik. Linki i historia nie trafiają nigdzie poza telefon i ten komputer.
 
+### Konwerter
+
+Zamienia pliki z jednego formatu na inny, w całości w telefonie: pliki nie są nigdzie wysyłane.
+
+- Obrazy (w tym HEIC z iPhone'a), audio, wideo, PDF i dokumenty tekstowe; wiele plików naraz.
+- Kilka zdjęć w jeden PDF, PDF na obrazy strona po stronie, PDF na Word, dokumenty do PDF.
+- Opcje jakości, rozmiaru, bitrate i rozdzielczości.
+- Plik pobrany w Pobieraczku można przekazać do Konwertera jednym dotknięciem.
+
+Konwersje działają w przeglądarce dzięki WebAssembly: [ImageMagick](https://github.com/dlemstra/magick-wasm), [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm), [pdf.js](https://github.com/mozilla/pdf.js), [pdf-lib](https://github.com/Hopding/pdf-lib), [pandoc](https://github.com/jgm/pandoc) i [Typst](https://github.com/Myriad-Dreamin/typst.ts). ffmpeg i pandoc są na licencji GPL. Pomysł zainspirowany przez [convert.to.it](https://github.com/p2r3/convert).
+
 ## Jak to jest zbudowane
 
 - Aplikacja: Vite i czysty JavaScript, bez frameworka.
@@ -37,6 +48,7 @@ npm run server   # serwer Pobieraczka
 | `src/main.js` | menu, pasek dolny, panele, nawigacja |
 | `src/content.js` | rejestr narzędzi i ekranów |
 | `src/tools/pobieranie.js` | Pobieraczek |
+| `src/tools/konwerter.js`, `src/tools/konwerter/` | Konwerter: ekran, katalog formatów, silniki |
 | `src/changelog.js` | historia zmian |
 | `server/server.js` | serwer Pobieraczka |
 | `Design System/` | tokeny, opis systemu wizualnego, makieta |

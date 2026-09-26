@@ -90,6 +90,7 @@ const IOS_LIMIT = 200_000_000;
 // Przesyłanie gotowego pliku z komputera do pamięci telefonu. Żyje poza ekranem narzędzia,
 // więc wyjście i powrót nie przerywa przesyłania; ekran podpina się przez `update`.
 let transfer = null; // { id, progress, file, error, tooBig, update, sharing, shown }
+let lastSaved = null; // ostatni zapisany plik: można go jeszcze przekazać do Konwertera
 
 async function fetchFile(job) {
   const t = (transfer = { id: job.id, progress: 0, file: null, error: null });
@@ -803,7 +804,8 @@ function main(el) {
           : '<button type="button" class="ht-btn ht-btn--secondary" data-dl="refetch">Spróbuj ponownie</button>'}` : ''}
       ${local?.file ? `
         <button type="button" class="ht-btn ht-btn--primary" data-dl="save">${icon('pobieranie', 'sm')}Zapisz</button>
-        ${IOS ? `<span class="ht-caption">W oknie Udostępnij wybierz „${toPhotos ? 'Zachowaj wideo' : 'Zachowaj w Plikach'}”${toPhotos ? ', żeby trafiło do Zdjęć' : ''}.</span>` : ''}` : ''}`;
+        ${IOS ? `<span class="ht-caption">W oknie Udostępnij wybierz „${toPhotos ? 'Zachowaj wideo' : 'Zachowaj w Plikach'}”${toPhotos ? ', żeby trafiło do Zdjęć' : ''}.</span>` : ''}
+        <button type="button" class="ht-btn ht-btn--secondary" data-dl="to-converter">${icon('konwerter', 'sm')}Konwertuj</button>` : ''}`;
     if (local?.file && !local.shown) {
       local.shown = true; // raz: pokaż „Zapisz”, który mógł zostać pod paskiem
       jobBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -843,13 +845,20 @@ function main(el) {
     }
   }
 
-  // Zadanie zamknięte (plik zapisany): czyść i odblokuj „Pobierz”.
+  // Zadanie zamknięte (plik zapisany): odblokuj „Pobierz”, a zapisany plik zostaw do Konwertera.
   function finish() {
     save(KEY.job, null);
+    lastSaved = transfer?.file ?? null;
     transfer = null;
-    jobBox.hidden = true;
     const btn = el.querySelector('[data-dl="download"]');
     if (btn) btn.disabled = false;
+    if (!lastSaved) return (jobBox.hidden = true);
+    jobBox.innerHTML = `
+      <div class="ht-card-sm">
+        <span class="ht-card-sm__top">${icon('zaznacz', 'md')}</span>
+        <span class="ht-card-sm__text"><span class="ht-value">Zapisano</span><span class="ht-meta">${esc(lastSaved.name)}</span></span>
+      </div>
+      <button type="button" class="ht-btn ht-btn--secondary" data-dl="to-converter">${icon('konwerter', 'sm')}Konwertuj</button>`;
   }
 
   function saveFile() {
@@ -975,6 +984,10 @@ function main(el) {
     }
     if (action === 'play') preview?.toggle?.();
     if (action === 'save') saveFile();
+    if (action === 'to-converter') {
+      const file = transfer?.file ?? lastSaved;
+      if (file) import('./konwerter.js').then((m) => m.receive(file)); // przed zapisem albo po nim
+    }
     if (action === 'refetch') {
       const job = load(KEY.job, null);
       transfer = null;

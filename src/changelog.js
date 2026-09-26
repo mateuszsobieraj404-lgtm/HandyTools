@@ -3,6 +3,20 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.8.0',
+    date: '2026-09-26',
+    title: 'Konwerter',
+    items: [
+      ['Nowe', 'Konwerter plików, w całości w telefonie: pliki nie są nigdzie wysyłane i działa bez włączonego komputera.'],
+      ['Nowe', 'Obrazy: JPG, PNG, WEBP, HEIC z iPhone\'a, GIF, BMP, TIFF, AVIF, także kilka zdjęć w jeden PDF. Opcje jakości i rozmiaru.'],
+      ['Nowe', 'Audio: MP3, M4A, WAV, FLAC, OGG, OPUS z wyborem bitrate. Wideo: MP4, MOV, MKV, WEBM, GIF albo sam dźwięk, z wyborem rozdzielczości.'],
+      ['Nowe', 'PDF na JPG/PNG strona po stronie i PDF na Word. Dokumenty: MD, HTML, TXT, EPUB, DOCX, ODT, RTF między sobą i do PDF.'],
+      ['Nowe', 'Wiele plików naraz, zapis wszystkich jednym oknem Udostępnij.'],
+      ['Nowe', 'Pobieraczek: przycisk „Konwertuj” przekazuje pobrany plik do Konwertera, przed zapisem albo po nim.'],
+      ['Zmiana', 'Pierwsza konwersja danego rodzaju pobiera silnik (od 2 do 58 MB); aplikacja mówi ile i pokazuje postęp.'],
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-09-26',
     title: 'Dopracowany wygląd i dopasowanie do telefonu',
