@@ -159,3 +159,11 @@ Każdy etap to osobny commit z wpisem w changelogu.
 - Tryb offline w DevTools: dane z pamięci plus komunikat.
 - Wylogowanie: kafel znika, `ht.pomocnik.*` wyczyszczone.
 - Po pushu: deploy.yml i release.yml na zielono. Na iPhonie logowanie raz i ponowne otwarcie aplikacji z zachowaną sesją.
+
+## Drukowanie (0.11.0)
+
+- „Drukuj” w szczegółach listy: PDF jak wydruk Pomocnika i okno Udostępnij (aplikacja Canon PRINT; aplikacja z ekranu głównego iPhone'a nie drukuje sama).
+- Przeniesione z Pomocnika: `buildPrintDoc` (js/druk.js), `drukRowHtml` i layout (js/core.js), style „wydruk” (style.css) → `src/tools/pomocnik/druk.js`.
+- Layout i paleta kolorów są w Pomocniku ustawieniami lokalnymi (plik na PC, nie w chmurze), więc są przepisane do `druk.js`: aktywny layout „Nowy 1” i 24 kolory z 27.09.2026. Po zmianie w Pomocniku trzeba je przepisać albo przenieść je w Pomocniku do tabeli `konfiguracja`.
+- Obraz stron: html2canvas (skala 3, ok. 290 dpi) + pdf-lib, A4 z marginesami 10/8 mm. W kopii do renderu tabela bez border-collapse, bo html2canvas rysował wspólne kreski podwójnie.
+- Sprawdzone na prawdziwej liście (74 pozycje): ten sam podział na 3 strony co oryginał, kreski 1 px.

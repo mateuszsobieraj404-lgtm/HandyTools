@@ -39,11 +39,12 @@ Podgląd bazy aplikacji Pomocnik List Sprzętu na telefonie, tylko do odczytu. N
 - Sprzęt: pogrupowany po magazynach, z wyszukiwarką, tagami i stanem magazynowym.
 - Najbliższe dni: suma sprzętu z list na 7, 14 albo 30 dni, z ostrzeżeniem, gdy potrzeba więcej, niż jest na stanie.
 - Ostatnio pobrany stan zostaje w telefonie i pokazuje się od razu, także bez internetu.
+- Drukowanie listy: PDF wyglądający jak wydruk z Pomocnika, wysyłany przez okno Udostępnij (np. do aplikacji drukarki).
 
 ## Jak to jest zbudowane
 
 - Aplikacja: Vite i czysty JavaScript, bez frameworka.
-- Pomocnik Remote: [supabase-js](https://github.com/supabase/supabase-js), tylko odczyt.
+- Pomocnik Remote: [supabase-js](https://github.com/supabase/supabase-js), tylko odczyt; wydruk przez [html2canvas](https://github.com/niklasvh/html2canvas) i pdf-lib.
 - Serwer Pobieraczka: Node.js z programami yt-dlp (filmy i dźwięk), gallery-dl (zdjęcia) i ffmpeg (łączenie i konwersja).
 - Wygląd: własny system wizualny z tokenami w `Design System/`.
 

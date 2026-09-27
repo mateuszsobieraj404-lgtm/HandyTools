@@ -16,6 +16,8 @@ export function lista(row) {
     rodzaj: d.rodzaj || '',
     opis: d.opis || '',
     kolejnosc: d.kolejnosc || 0,
+    kolor: d.kolor || 0, // indeks w palecie Pomocnika (tło tytułu na wydruku)
+    utworzono: d.utworzono || '',
     naszykowana: !!d.naszykowana,
     zaladowana: !!d.zaladowana,
     drukFlagi: !!d.drukFlagi, // „*Do potwierdzenia” przy pozycjach z flagą

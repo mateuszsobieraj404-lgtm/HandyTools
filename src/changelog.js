@@ -3,6 +3,16 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.11.0',
+    date: '2026-09-27',
+    title: 'Pomocnik Remote: drukowanie list',
+    items: [
+      ['Nowe', 'Przycisk „Drukuj” w każdej liście: robi PDF wyglądający jak wydruk z Pomocnika (ten sam tytuł w kolorze listy, tabela, uwagi na czerwono, podpis, puste wiersze, „Strona 1 z 2”) i otwiera okno Udostępnij, np. do aplikacji Canon PRINT.'],
+      ['Nowe', 'Strony dzielą się tak samo jak w Pomocniku, na A4 z tymi samymi marginesami.'],
+      ['Nowe', 'Gdy przygotowanie trwa dłużej, przycisk zmienia się na „Udostępnij PDF”: wystarczy dotknąć drugi raz. Ponowny wydruk tej samej listy jest od razu.'],
+    ],
+  },
+  {
     version: '0.10.0',
     date: '2026-09-26',
     title: 'Pomocnik Remote',

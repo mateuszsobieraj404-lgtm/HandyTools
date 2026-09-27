@@ -30,6 +30,8 @@ const LIST = ['lista', 'listy', 'list'];
 export const title = (id) => (id && zapisane()?.listy.find((l) => l.id === decodeURIComponent(id))?.nazwa) || 'Pomocnik List Sprzętu';
 
 let pobrane = 0; // kiedy ostatnio pytaliśmy bazę (odświeżanie przy wejściu, najwyżej co 30 s)
+// Ostatni przygotowany wydruk: ponowne „Drukuj” tej samej listy (bez zmian w danych) nie liczy go od nowa.
+let wydruk = { klucz: '', plik: null };
 
 export function render(el) {
   if (!zalogowany()) {
@@ -48,6 +50,7 @@ export function render(el) {
   let dane = zapisane();
   let blad = '';
   let laduje = false;
+  let druk = ''; // '' | 'robi' | 'gotowy' (PDF czeka na drugie dotknięcie) | tekst błędu
   const id = idListy();
 
   el.innerHTML = '<div class="ht-section-block ht-stack" id="pl"></div>';
@@ -199,7 +202,13 @@ export function render(el) {
         </ul>
         ${l.opis ? `<p class="ht-lead" style="white-space:pre-line">${esc(l.opis)}</p>` : ''}
       </section>
-      ${l.pozycje.length ? `${seg('uklad', [['lista', 'Kolejność z listy'], ['magazyny', 'Po magazynach']], 'Układ')}${lista}` : brak('Ta lista nie ma pozycji.')}`;
+      ${l.pozycje.length ? `${seg('uklad', [['lista', 'Kolejność z listy'], ['magazyny', 'Po magazynach']], 'Układ')}${lista}` : brak('Ta lista nie ma pozycji.')}
+      <div class="ht-dock">
+        ${druk && !['robi', 'gotowy'].includes(druk) ? `<span class="ht-field-error" role="alert">${esc(druk)}</span>` : ''}
+        ${druk === 'gotowy'
+          ? `<button type="button" class="ht-btn ht-btn--primary" data-p="udostepnij">${icon('eksport', 'sm')}Udostępnij PDF</button>`
+          : `<button type="button" class="ht-btn ht-btn--primary" data-p="drukuj" ${druk === 'robi' ? 'disabled' : ''}>${icon('eksport', 'sm')}${druk === 'robi' ? 'Przygotowuję wydruk…' : 'Drukuj'}</button>`}
+      </div>`;
   }
 
   /* --- sprzęt ----------------------------------------------------------------- */
@@ -244,6 +253,49 @@ export function render(el) {
       ${poMagazynach(rows, dane.magazyny).map((g) => group(g.nazwa, plural(g.elementy.length, POZ), `<ul class="ht-rows">${g.elementy.map(row).join('')}</ul>`)).join('')}`;
   }
 
+  /* --- wydruk ------------------------------------------------------------------ */
+
+  // „Drukuj” robi PDF jak wydruk z Pomocnika i otwiera okno Udostępnij (tam np. Canon PRINT).
+  // Safari otwiera to okno tylko krótko po dotknięciu; gdy PDF liczył się dłużej, drugie dotknięcie „Udostępnij PDF”.
+  async function drukuj() {
+    const l = dane.listy.find((x) => x.id === id);
+    const klucz = JSON.stringify(l);
+    if (wydruk.klucz !== klucz) {
+      druk = 'robi';
+      draw();
+      try {
+        const { pdfListy } = await import('./pomocnik/druk.js');
+        wydruk = { klucz, plik: await pdfListy(l, dzisISO()) };
+      } catch (ex) {
+        druk = `Nie udało się przygotować wydruku: ${ex?.message || ex}`;
+        return draw();
+      }
+    }
+    druk = '';
+    draw();
+    await udostepnij(wydruk.plik);
+  }
+
+  async function udostepnij(plik) {
+    if (!navigator.canShare?.({ files: [plik] })) {
+      // Komputer bez udostępniania plików: zwykłe pobranie PDF.
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(plik);
+      a.download = plik.name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+      return;
+    }
+    try {
+      await navigator.share({ files: [plik], title: plik.name.replace(/\.pdf$/, '') });
+      druk = '';
+    } catch (ex) {
+      if (ex?.name !== 'NotAllowedError') return; // zamknięte okno Udostępnij: nic się nie stało
+      druk = 'gotowy'; // minęło za dużo czasu od dotknięcia
+    }
+    if (el.isConnected) draw();
+  }
+
   /* --- zdarzenia ----------------------------------------------------------- */
 
   el.oninput = (e) => {
@@ -255,6 +307,8 @@ export function render(el) {
     const t = e.target.closest('button');
     if (!t || t.disabled) return;
     if (t.dataset.p === 'odswiez') return odswiez();
+    if (t.dataset.p === 'drukuj') return drukuj();
+    if (t.dataset.p === 'udostepnij') return udostepnij(wydruk.plik);
     const [klucz] = Object.keys(t.dataset).filter((k) => k.startsWith('p') && k !== 'p').map((k) => k.slice(1).toLowerCase());
     if (!klucz || !(klucz in ui)) return;
     ui[klucz] = t.dataset[`p${klucz[0].toUpperCase()}${klucz.slice(1)}`];

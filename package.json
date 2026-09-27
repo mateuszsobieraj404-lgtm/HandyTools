@@ -21,6 +21,7 @@
     "@myriaddreamin/typst-ts-web-compiler": "^0.7.0",
     "@myriaddreamin/typst.ts": "^0.7.0",
     "@supabase/supabase-js": "^2.117.2",
+    "html2canvas": "^1.4.1",
     "pandoc-wasm": "^1.1.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289"
