@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-09-27T01:30:00.482Z",
+        "reason": "Claude: druk.js copies the print CSS of Pomocnik List Sprzętu (style.css uses Arial); the user asked for printouts that look identical to the originals"
+      }
+    ]
+  }
+}
