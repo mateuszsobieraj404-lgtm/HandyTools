@@ -3,6 +3,15 @@
 // Rodzaje: 'Nowe', 'Poprawka', 'Zmiana'.
 export const changelog = [
   {
+    version: '0.11.1',
+    date: '2026-09-27',
+    title: 'Drukowanie: prosto do aplikacji drukarki',
+    items: [
+      ['Poprawka', 'Okno Udostępnij dostaje sam plik PDF (bez tytułu), więc aplikacje przyjmujące tylko PDF, jak Canon PRINT, pokazują się w nim od razu.'],
+      ['Zmiana', 'Pod listą podpowiedź: PDF jest w A4, a Canon PRINT wybierasz w oknie Udostępnij. Przez „Drukuj” → „Udostępnij” iPhone przerabia PDF na papier wybrany dla drukarki (np. A5).'],
+    ],
+  },
+  {
     version: '0.11.0',
     date: '2026-09-27',
     title: 'Pomocnik Remote: drukowanie list',

@@ -203,6 +203,7 @@ export function render(el) {
         ${l.opis ? `<p class="ht-lead" style="white-space:pre-line">${esc(l.opis)}</p>` : ''}
       </section>
       ${l.pozycje.length ? `${seg('uklad', [['lista', 'Kolejność z listy'], ['magazyny', 'Po magazynach']], 'Układ')}${lista}` : brak('Ta lista nie ma pozycji.')}
+      <span class="ht-caption">PDF w A4. W oknie Udostępnij wybierz Canon PRINT; gdy go nie widać, przewiń rząd aplikacji do „Więcej”.</span>
       <div class="ht-dock">
         ${druk && !['robi', 'gotowy'].includes(druk) ? `<span class="ht-field-error" role="alert">${esc(druk)}</span>` : ''}
         ${druk === 'gotowy'
@@ -287,7 +288,8 @@ export function render(el) {
       return;
     }
     try {
-      await navigator.share({ files: [plik], title: plik.name.replace(/\.pdf$/, '') });
+      // Sam plik, bez tytułu: przy tekście obok pliku iPhone chowa aplikacje, które biorą tylko PDF (np. Canon PRINT).
+      await navigator.share({ files: [plik] });
       druk = '';
     } catch (ex) {
       if (ex?.name !== 'NotAllowedError') return; // zamknięte okno Udostępnij: nic się nie stało
